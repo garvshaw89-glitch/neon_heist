@@ -16,7 +16,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({
 }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
-      <div className="relative w-full max-w-3xl bg-[#080d19] border border-cyan-500/40 rounded-2xl shadow-[0_0_80px_rgba(6,182,212,0.2)] p-6 sm:p-8 overflow-hidden font-mono-tech">
+      <div className="relative w-full max-w-3xl bg-[#080d19] border border-cyan-500/40 rounded-2xl shadow-[0_0_80px_rgba(6,182,212,0.2)] p-6 sm:p-8 overflow-hidden font-mono-tech terminal-glass surface-imperfections">
         {/* Header */}
         <div className="flex items-start justify-between border-b border-white/10 pb-4 mb-6">
           <div>

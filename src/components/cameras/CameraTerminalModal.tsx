@@ -28,7 +28,7 @@ export const CameraTerminalModal: React.FC<CameraTerminalModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
-      <div className="relative w-full max-w-4xl bg-[#090d16] border border-cyan-500/30 rounded-xl shadow-[0_0_60px_rgba(6,182,212,0.15)] overflow-hidden flex flex-col md:flex-row">
+      <div className="relative w-full max-w-4xl bg-[#090d16] border border-cyan-500/30 rounded-xl shadow-[0_0_60px_rgba(6,182,212,0.15)] overflow-hidden flex flex-col md:flex-row terminal-glass surface-imperfections">
         {/* Left Side: Camera Selection List */}
         <div className="w-full md:w-72 bg-slate-950/80 border-b md:border-b-0 md:border-r border-slate-800 p-4 flex flex-col justify-between">
           <div>

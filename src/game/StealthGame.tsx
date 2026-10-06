@@ -1143,7 +1143,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
 
       {/* MINIMAL DIEGETIC TOP-LEFT HUD */}
       <div className="absolute top-5 left-5 z-30 flex flex-col gap-2">
-        <div className="bg-[#090d18]/90 backdrop-blur-md border border-white/10 rounded-xl p-3.5 shadow-xl min-w-[210px]">
+        <div className="bg-[#090d18]/90 backdrop-blur-md border border-white/10 rounded-xl p-3.5 shadow-xl min-w-[210px] terminal-glass surface-imperfections">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-display font-bold text-white tracking-wide">
               {mission.isTutorial ? 'GHOST · RECON' : 'THE GHOST'}
@@ -1192,7 +1192,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
 
       {/* TOP RIGHT MINIMAL OBJECTIVE */}
       <div className="absolute top-5 right-5 z-30">
-        <div className="bg-[#090d18]/90 backdrop-blur-md border border-white/10 rounded-xl p-3.5 shadow-xl min-w-[220px]">
+        <div className="bg-[#090d18]/90 backdrop-blur-md border border-white/10 rounded-xl p-3.5 shadow-xl min-w-[220px] terminal-glass surface-imperfections">
           <span className="text-[9px] text-cyan-400 uppercase tracking-widest block mb-0.5">
             CURRENT DIRECTIVE
           </span>

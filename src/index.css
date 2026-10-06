@@ -81,3 +81,83 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(34, 211, 238, 0.5);
 }
+
+/* =========================================================================
+   TACTILE SURFACE IMPERFECTIONS (DUST, FINGERPRINTS, RESIDUE, AND WEAR)
+   ========================================================================= */
+
+/* Micro-dust particulate grain */
+.surface-dust {
+  background-image: 
+    radial-gradient(1px 1px at 24px 32px, rgba(255, 255, 255, 0.22), transparent),
+    radial-gradient(1.2px 1.2px at 145px 82px, rgba(255, 255, 255, 0.16), transparent),
+    radial-gradient(1.5px 1.5px at 220px 190px, rgba(255, 255, 255, 0.18), transparent),
+    radial-gradient(1px 1px at 88px 240px, rgba(255, 255, 255, 0.14), transparent),
+    radial-gradient(1px 1px at 310px 120px, rgba(255, 255, 255, 0.18), transparent),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-blend-mode: screen, screen, screen, screen, screen, overlay;
+}
+
+/* Faint oily fingerprint smudges on glass */
+.surface-fingerprints {
+  background-image:
+    radial-gradient(ellipse 26px 40px at 22% 34%, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.012) 55%, transparent 75%),
+    radial-gradient(ellipse 30px 48px at 78% 66%, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.01) 50%, transparent 72%),
+    radial-gradient(ellipse 20px 32px at 85% 24%, rgba(255, 255, 255, 0.03) 0%, transparent 70%),
+    radial-gradient(ellipse 34px 52px at 14% 78%, rgba(255, 255, 255, 0.025) 0%, transparent 70%);
+  background-blend-mode: soft-light;
+}
+
+/* Comprehensive tactile overlay: smudges, micro-dust, and faint hairline scratches */
+.surface-imperfections {
+  position: relative;
+}
+
+.surface-imperfections::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image:
+    /* Faint thumb smudges */
+    radial-gradient(ellipse 26px 38px at 16% 26%, rgba(255, 255, 255, 0.038) 0%, rgba(255, 255, 255, 0.012) 50%, transparent 75%),
+    radial-gradient(ellipse 32px 46px at 84% 68%, rgba(255, 255, 255, 0.032) 0%, rgba(255, 255, 255, 0.009) 48%, transparent 72%),
+    radial-gradient(ellipse 22px 34px at 52% 88%, rgba(255, 255, 255, 0.022) 0%, transparent 70%),
+    /* Micro dust particulates */
+    radial-gradient(1px 1px at 32px 44px, rgba(255, 255, 255, 0.22), transparent),
+    radial-gradient(1.2px 1.2px at 178px 96px, rgba(255, 255, 255, 0.16), transparent),
+    radial-gradient(1px 1px at 92px 210px, rgba(255, 255, 255, 0.14), transparent),
+    radial-gradient(1.4px 1.4px at 280px 145px, rgba(255, 255, 255, 0.19), transparent),
+    radial-gradient(1px 1px at 360px 240px, rgba(255, 255, 255, 0.12), transparent),
+    /* Faint microscopic hairline scratch */
+    linear-gradient(132deg, transparent 48.2%, rgba(255, 255, 255, 0.035) 49%, rgba(255, 255, 255, 0.035) 49.3%, transparent 50.2%),
+    /* Organic procedural noise grain */
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  background-blend-mode: soft-light, soft-light, soft-light, screen, screen, screen, screen, screen, overlay, overlay;
+  opacity: 0.82;
+  z-index: 10;
+}
+
+/* Terminal Glass: physical coated glass housing with bezel reflection and tactile grit */
+.terminal-glass {
+  position: relative;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+    0 16px 40px rgba(0, 0, 0, 0.65);
+}
+
+.terminal-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: 
+    linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.005) 30%, transparent 60%),
+    radial-gradient(ellipse 40px 60px at 78% 28%, rgba(255, 255, 255, 0.025) 0%, transparent 65%);
+  background-blend-mode: overlay;
+  z-index: 11;
+}

@@ -44,7 +44,7 @@ export const VaultCrackModal: React.FC<VaultCrackModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl p-4">
-      <div className="relative w-full max-w-xl bg-[#090d18] border border-cyan-500/40 rounded-2xl shadow-[0_0_80px_rgba(6,182,212,0.2)] p-8 text-center overflow-hidden">
+      <div className="relative w-full max-w-xl bg-[#090d18] border border-cyan-500/40 rounded-2xl shadow-[0_0_80px_rgba(6,182,212,0.2)] p-8 text-center overflow-hidden terminal-glass surface-imperfections">
         {/* Ambient background glow */}
         <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 

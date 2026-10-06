@@ -157,7 +157,7 @@ export const HackModal: React.FC<HackModalProps> = ({ terminal, onSuccess, onClo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-      <div className="relative w-full max-w-2xl bg-[#090d16] border border-cyan-500/30 rounded-xl shadow-[0_0_50px_rgba(6,182,212,0.15)] overflow-hidden">
+      <div className="relative w-full max-w-2xl bg-[#090d16] border border-cyan-500/30 rounded-xl shadow-[0_0_50px_rgba(6,182,212,0.15)] overflow-hidden terminal-glass surface-imperfections">
         {/* Terminal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-cyan-500/20 bg-slate-900/60">
           <div className="flex items-center gap-3">
