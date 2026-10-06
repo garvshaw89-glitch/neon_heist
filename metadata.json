@@ -1,0 +1,7 @@
+{
+  "name": "NEON HEIST",
+  "description": "Steal the impossible. Leave no trace. A luxury futuristic single-player cyberpunk stealth game featuring tactical infiltration, guard AI, cybernetic hacking, and classified contracts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
