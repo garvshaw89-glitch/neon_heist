@@ -24,7 +24,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ player }) => {
       const h = (canvas.height = canvas.parentElement?.clientHeight || 280);
       const cx = w / 2;
       const cy = h / 2;
-      const radius = Math.min(cx, cy) - 35;
+      const radius = Math.max(10, Math.min(cx, cy) - 35);
 
       ctx.clearRect(0, 0, w, h);
 

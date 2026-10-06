@@ -49,9 +49,11 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
       ctx.strokeStyle = 'rgba(6, 182, 212, 0.12)';
       ctx.lineWidth = 1;
       for (let r = 50; r <= 180; r += 40) {
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.stroke();
+        if (r > 0) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, Math.max(0, r), 0, Math.PI * 2);
+          ctx.stroke();
+        }
       }
 
       // Sweeping radar beam

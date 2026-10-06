@@ -282,7 +282,8 @@ export const StealthGame: React.FC<StealthGameProps> = ({
     let lastTime = performance.now();
 
     const loop = (currentTime: number) => {
-      const dt = Math.min(0.05, (currentTime - lastTime) / 1000);
+      const elapsed = (currentTime - lastTime) / 1000;
+      const dt = Math.max(0.001, Math.min(0.05, isNaN(elapsed) || elapsed < 0 ? 0.016 : elapsed));
       lastTime = currentTime;
 
       // 1. UPDATE TIMERS & COOLDOWNS
@@ -352,10 +353,10 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       noiseWavesRef.current = noiseWavesRef.current
         .map(wave => ({
           ...wave,
-          r: wave.r + 140 * dt,
+          r: Math.max(0, wave.r + 140 * dt),
           opacity: wave.opacity - 0.7 * dt
         }))
-        .filter(w => w.opacity > 0);
+        .filter(w => w.opacity > 0 && w.r > 0);
 
       // Check if noise alerts guards
       noiseWavesRef.current.forEach(wave => {
@@ -567,7 +568,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
     // Extraction Zone
     const ext = mission.extraction;
     ctx.beginPath();
-    ctx.arc(ext.x, ext.y, ext.radius, 0, Math.PI * 2);
+    ctx.arc(ext.x, ext.y, Math.max(0, ext.radius), 0, Math.PI * 2);
     ctx.fillStyle = targetAcquired ? 'rgba(34, 211, 238, 0.15)' : 'rgba(255, 255, 255, 0.04)';
     ctx.fill();
     ctx.strokeStyle = targetAcquired ? '#22d3ee' : 'rgba(255, 255, 255, 0.15)';
@@ -719,9 +720,10 @@ export const StealthGame: React.FC<StealthGameProps> = ({
 
     // Render Noise Waves
     noiseWavesRef.current.forEach(wave => {
+      if (wave.r <= 0) return;
       ctx.beginPath();
-      ctx.arc(wave.x, wave.y, wave.r, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(34, 211, 238, ${wave.opacity})`;
+      ctx.arc(wave.x, wave.y, Math.max(0, wave.r), 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(34, 211, 238, ${Math.max(0, wave.opacity)})`;
       ctx.lineWidth = 1.5;
       ctx.stroke();
     });
