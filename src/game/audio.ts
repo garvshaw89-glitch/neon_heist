@@ -115,6 +115,156 @@ class SoundSystem {
     });
   }
 
+  // Realistic AR Scanner Activation
+  public playScannerMode(active: boolean) {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc.type = 'sine';
+    filter.type = 'bandpass';
+    filter.Q.setValueAtTime(8, now);
+
+    if (active) {
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(1400, now + 0.18);
+      filter.frequency.setValueAtTime(600, now);
+      filter.frequency.exponentialRampToValueAtTime(2200, now + 0.18);
+    } else {
+      osc.frequency.setValueAtTime(1100, now);
+      osc.frequency.exponentialRampToValueAtTime(240, now + 0.15);
+      filter.frequency.setValueAtTime(1800, now);
+      filter.frequency.exponentialRampToValueAtTime(400, now + 0.15);
+    }
+
+    gain.gain.setValueAtTime(0.08 * this.sfxVolume * this.masterVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.22);
+  }
+
+  // Realistic Physical Light Switch
+  public playLightSwitch() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(440, now);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.03);
+
+    gain.gain.setValueAtTime(0.15 * this.sfxVolume * this.masterVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.05);
+  }
+
+  // Realistic Heavy Mechanical Flight Case Open
+  public playFlightCaseOpen() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    // Dual latch click
+    [0, 0.09].forEach(offset => {
+      if (!this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(320, now + offset);
+      osc.frequency.exponentialRampToValueAtTime(90, now + offset + 0.04);
+
+      gain.gain.setValueAtTime(0.18 * this.sfxVolume * this.masterVolume, now + offset);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.05);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now + offset);
+      osc.stop(now + offset + 0.06);
+    });
+  }
+
+  // Realistic Pneumatic Door Slide
+  public playHydraulicDoor() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const bufferSize = this.ctx.sampleRate * 0.4;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.4));
+    }
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(1200, now);
+    filter.frequency.linearRampToValueAtTime(300, now + 0.35);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.12 * this.sfxVolume * this.masterVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    noise.start(now);
+    noise.stop(now + 0.4);
+  }
+
+  // Realistic Distant Thunder Roll
+  public playThunder() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(55, now);
+    osc.frequency.linearRampToValueAtTime(28, now + 1.2);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(140, now);
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.2 * this.sfxVolume * this.masterVolume, now + 0.15);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 1.5);
+  }
+
   // Stealth Cloak Trigger
   public playCloak(active: boolean) {
     if (this.isMuted) return;

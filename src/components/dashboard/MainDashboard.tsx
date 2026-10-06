@@ -3,14 +3,14 @@ import { PlayerState } from '../../types/game';
 import { ActiveNavTab } from '../navigation/TopBar';
 import { sound } from '../../game/audio';
 import {
+  Play,
   Crosshair,
-  Cpu,
   Layers,
   ShoppingBag,
-  Database,
+  Cpu,
   Sliders,
-  ShieldCheck,
   ChevronRight,
+  Shield,
   Radio
 } from 'lucide-react';
 
@@ -18,92 +18,124 @@ interface MainDashboardProps {
   player: PlayerState;
   onNavigate: (tab: ActiveNavTab) => void;
   onSelectOperation: () => void;
+  onPlayTutorial: () => void;
 }
 
 export const MainDashboard: React.FC<MainDashboardProps> = ({
   player,
   onNavigate,
-  onSelectOperation
+  onSelectOperation,
+  onPlayTutorial
 }) => {
-  const holoCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const cityCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Holographic City Sector Wireframe Animation
+  // Live Multi-Layer Cinematic Megacity Canvas
   useEffect(() => {
-    const canvas = holoCanvasRef.current;
+    const canvas = cityCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     let animId: number;
-    let rotation = 0;
+    let width = (canvas.width = canvas.parentElement?.clientWidth || window.innerWidth);
+    let height = (canvas.height = canvas.parentElement?.clientHeight || window.innerHeight);
+
+    // Rain particles
+    const rainDrops: { x: number; y: number; l: number; v: number }[] = [];
+    for (let i = 0; i < 140; i++) {
+      rainDrops.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        l: Math.random() * 22 + 12,
+        v: Math.random() * 12 + 16
+      });
+    }
+
+    // Traffic light streaks (Hovercrafts)
+    const traffic: { x: number; y: number; speed: number; color: string; len: number }[] = [
+      { x: -50, y: height * 0.42, speed: 2.5, color: '#38bdf8', len: 70 },
+      { x: width + 50, y: height * 0.54, speed: -2.1, color: '#fb7185', len: 55 },
+      { x: -80, y: height * 0.68, speed: 3.2, color: '#f59e0b', len: 65 }
+    ];
+
+    // Background Skyscraper Silhouettes
+    const towers: { x: number; w: number; h: number; windows: { x: number; y: number; lit: boolean }[] }[] = [];
+    let curX = 0;
+    while (curX < width + 100) {
+      const bW = Math.random() * 110 + 80;
+      const bH = Math.random() * (height * 0.65) + height * 0.35;
+      const bWindows: { x: number; y: number; lit: boolean }[] = [];
+      for (let wy = height - bH + 30; wy < height - 60; wy += 26) {
+        for (let wx = curX + 16; wx < curX + bW - 16; wx += 22) {
+          bWindows.push({ x: wx, y: wy, lit: Math.random() > 0.45 });
+        }
+      }
+      towers.push({ x: curX, w: bW, h: bH, windows: bWindows });
+      curX += bW + 18;
+    }
 
     const render = () => {
-      const w = (canvas.width = canvas.parentElement?.clientWidth || 500);
-      const h = (canvas.height = canvas.parentElement?.clientHeight || 450);
-      const cx = w / 2;
-      const cy = h / 2 + 30;
+      ctx.fillStyle = '#06080e';
+      ctx.fillRect(0, 0, width, height);
 
-      ctx.clearRect(0, 0, w, h);
+      // Atmospheric gradient haze
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
+      skyGrad.addColorStop(0, '#04060a');
+      skyGrad.addColorStop(0.7, '#070b14');
+      skyGrad.addColorStop(1, '#0c1220');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, width, height);
 
-      // Radar scan rings
-      ctx.strokeStyle = 'rgba(6, 182, 212, 0.12)';
-      ctx.lineWidth = 1;
-      for (let r = 50; r <= 180; r += 40) {
-        if (r > 0) {
-          ctx.beginPath();
-          ctx.arc(cx, cy, Math.max(0, r), 0, Math.PI * 2);
-          ctx.stroke();
-        }
-      }
+      // Distant Tower Silhouettes
+      towers.forEach(t => {
+        ctx.fillStyle = '#0b101c';
+        ctx.fillRect(t.x, height - t.h, t.w, t.h);
 
-      // Sweeping radar beam
-      rotation += 0.015;
-      const beamX = cx + Math.cos(rotation) * 180;
-      const beamY = cy + Math.sin(rotation) * 180;
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(beamX, beamY);
-      ctx.strokeStyle = 'rgba(34, 211, 238, 0.4)';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
+        // Windows
+        t.windows.forEach(w => {
+          ctx.fillStyle = w.lit ? 'rgba(56, 189, 248, 0.12)' : 'rgba(255, 255, 255, 0.015)';
+          ctx.fillRect(w.x, w.y, 9, 13);
+        });
 
-      // Holographic isometric city buildings
-      const numTowers = 9;
-      for (let i = 0; i < numTowers; i++) {
-        const angle = (i / numTowers) * Math.PI * 2 + rotation * 0.4;
-        const dist = 70 + (i % 3) * 35;
-        const bx = cx + Math.cos(angle) * dist;
-        const by = cy + Math.sin(angle) * (dist * 0.55);
-        const bHeight = 40 + (i % 4) * 25;
-
-        // Base
-        ctx.strokeStyle = 'rgba(34, 211, 238, 0.25)';
-        ctx.strokeRect(bx - 12, by - 8, 24, 16);
-
-        // Tower top
-        ctx.strokeStyle = 'rgba(34, 211, 238, 0.6)';
-        ctx.strokeRect(bx - 12, by - 8 - bHeight, 24, 16);
-
-        // Vertical connecting corner struts
+        // Rooftop aviation beacon
+        ctx.fillStyle = '#f43f5e';
         ctx.beginPath();
-        ctx.moveTo(bx - 12, by - 8);
-        ctx.lineTo(bx - 12, by - 8 - bHeight);
-        ctx.moveTo(bx + 12, by - 8);
-        ctx.lineTo(bx + 12, by - 8 - bHeight);
-        ctx.moveTo(bx - 12, by + 8);
-        ctx.lineTo(bx - 12, by + 8 - bHeight);
-        ctx.moveTo(bx + 12, by + 8);
-        ctx.lineTo(bx + 12, by + 8 - bHeight);
-        ctx.stroke();
+        ctx.arc(t.x + t.w / 2, height - t.h - 4, 2, 0, Math.PI * 2);
+        ctx.fill();
+      });
 
-        // Tower antenna pulse
-        if (i === 1 || i === 4) {
-          ctx.fillStyle = '#22d3ee';
-          ctx.beginPath();
-          ctx.arc(bx, by - 12 - bHeight, 3, 0, Math.PI * 2);
-          ctx.fill();
+      // Distant corporate sign glow
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.03)';
+      ctx.fillRect(width * 0.45, height * 0.35, 200, 80);
+
+      // Hovercraft Traffic Light Trails
+      traffic.forEach(v => {
+        v.x += v.speed;
+        if (v.speed > 0 && v.x > width + 100) v.x = -100;
+        if (v.speed < 0 && v.x < -100) v.x = width + 100;
+
+        ctx.strokeStyle = v.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(v.x, v.y);
+        ctx.lineTo(v.x - v.speed * 8, v.y);
+        ctx.stroke();
+      });
+
+      // Rain animation
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+      ctx.lineWidth = 1;
+      rainDrops.forEach(drop => {
+        drop.y += drop.v;
+        if (drop.y > height) {
+          drop.y = -20;
+          drop.x = Math.random() * width;
         }
-      }
+        ctx.beginPath();
+        ctx.moveTo(drop.x, drop.y);
+        ctx.lineTo(drop.x - 1, drop.y + drop.l);
+        ctx.stroke();
+      });
 
       animId = requestAnimationFrame(render);
     };
@@ -112,156 +144,125 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     return () => cancelAnimationFrame(animId);
   }, []);
 
-  const menuItems: { id: ActiveNavTab; index: string; label: string; desc: string; icon: React.ReactNode }[] = [
-    { id: 'OPERATIONS', index: '01', label: 'OPERATIONS', desc: 'Tactical Megacity Contracts', icon: <Crosshair className="w-4 h-4" /> },
-    { id: 'PROFILE', index: '02', label: 'INTELLIGENCE', desc: 'Operative Analytics & Bio', icon: <Cpu className="w-4 h-4" /> },
-    { id: 'LOADOUT', index: '03', label: 'LOADOUT', desc: 'Active Stealth Arsenal', icon: <Layers className="w-4 h-4" /> },
-    { id: 'MARKET', index: '04', label: 'MARKET', desc: 'Illicit Weaponry & Software', icon: <ShoppingBag className="w-4 h-4" /> },
-    { id: 'ARCHIVE', index: '05', label: 'ARCHIVE', desc: 'Classified Corporate Lore', icon: <Database className="w-4 h-4" /> },
-    { id: 'SETTINGS', index: '06', label: 'SETTINGS', desc: 'Audio, Visuals & Terminal', icon: <Sliders className="w-4 h-4" /> }
+  const menuOptions = [
+    {
+      label: 'CONTINUE CONTRACT',
+      desc: 'Resume active infiltration sequence',
+      action: () => onSelectOperation(),
+      icon: <Play className="w-4 h-4" />
+    },
+    {
+      label: 'OPERATION ZERO',
+      desc: 'Play stealth tutorial simulation',
+      action: () => onPlayTutorial(),
+      icon: <Radio className="w-4 h-4" />
+    },
+    {
+      label: 'OPERATIONS',
+      desc: 'Select megacity corporate targets',
+      action: () => onNavigate('OPERATIONS'),
+      icon: <Crosshair className="w-4 h-4" />
+    },
+    {
+      label: 'LOADOUT ARSENAL',
+      desc: 'Configure tactical infiltration gear',
+      action: () => onNavigate('LOADOUT'),
+      icon: <Layers className="w-4 h-4" />
+    },
+    {
+      label: 'INTELLIGENCE DOSSIER',
+      desc: 'Operative profile & performance data',
+      action: () => onNavigate('PROFILE'),
+      icon: <Cpu className="w-4 h-4" />
+    },
+    {
+      label: 'BLACK MARKET',
+      desc: 'Procure classified hardware & software',
+      action: () => onNavigate('MARKET'),
+      icon: <ShoppingBag className="w-4 h-4" />
+    },
+    {
+      label: 'CALIBRATION',
+      desc: 'Audio, display & keybinding preferences',
+      action: () => onNavigate('SETTINGS'),
+      icon: <Sliders className="w-4 h-4" />
+    }
   ];
 
   return (
-    <div className="relative w-full h-[calc(100vh-4rem)] p-6 lg:p-8 flex flex-col justify-between overflow-y-auto">
-      {/* Top OS Status Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/5 font-mono-tech text-xs">
-        <div className="flex items-center gap-3">
-          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
-          <span className="text-cyan-400 font-bold">GHOSTNET OS · ENCRYPTED KERNEL</span>
-          <span className="text-slate-600">|</span>
-          <span className="text-slate-400">NODE ID: GHOST-894-DELTA</span>
-        </div>
+    <div className="relative w-full h-[calc(100vh-4rem)] overflow-hidden select-none font-mono-tech">
+      {/* Live Atmospheric Canvas Backdrop */}
+      <canvas ref={cityCanvasRef} className="absolute inset-0 w-full h-full block z-0" />
 
-        <div className="flex items-center gap-4 text-slate-400">
-          <span>IP: 10.42.198.74 [ANONYMIZED]</span>
-          <span>LATENCY: 4MS</span>
-        </div>
-      </div>
+      {/* Cyber Vignette & Subtle Fog */}
+      <div className="absolute inset-0 cyber-vignette opacity-85 z-10 pointer-events-none" />
 
-      {/* Tri-column Dashboard Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 my-auto items-center">
-        {/* Left Column: Minimal Encrypted Navigation */}
-        <div className="lg:col-span-3 space-y-2.5 font-mono-tech">
-          <div className="text-[10px] text-slate-500 uppercase tracking-widest px-2 mb-3">
-            ROOT NAVIGATION
+      {/* Foreground Minimal Commercial Game Menu */}
+      <div className="relative z-20 w-full h-full p-8 lg:p-12 flex flex-col justify-between">
+        {/* Top Operative Status Summary */}
+        <div className="flex items-center justify-between text-xs text-slate-400">
+          <div className="flex items-center gap-3">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+            <span className="text-white font-bold">{player.codename}</span>
+            <span className="text-slate-600">·</span>
+            <span>RANK {player.reputationLevel}</span>
           </div>
 
-          {menuItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => {
-                sound.playUiClick();
-                onNavigate(item.id);
-              }}
-              onMouseEnter={() => sound.playUiHover()}
-              className="w-full text-left p-3.5 rounded-xl border border-white/5 bg-[#0a0f1d]/50 hover:bg-cyan-950/30 hover:border-cyan-500/40 text-slate-300 hover:text-white transition-all group flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-cyan-400 font-bold group-hover:drop-shadow-[0_0_8px_#22d3ee]">
-                  {item.index}
-                </span>
-                <div>
-                  <div className="text-xs font-display font-semibold text-white tracking-wider">
-                    {item.label}
-                  </div>
-                  <div className="text-[10px] text-slate-500 group-hover:text-cyan-300/70">
-                    {item.desc}
-                  </div>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
-            </button>
-          ))}
+          <div className="flex items-center gap-6">
+            <span>BALANCE: <strong className="text-cyan-300">₡{player.credits.toLocaleString()}</strong></span>
+            <span>DETECTION: <strong className="text-emerald-400">{player.stats.detectionPercentage}%</strong></span>
+          </div>
         </div>
 
-        {/* Center Column: Holographic City Map */}
-        <div className="lg:col-span-6 flex flex-col items-center justify-center p-6 rounded-2xl border border-white/5 bg-[#080d19]/40 relative overflow-hidden">
-          {/* Canvas Hologram */}
-          <div className="w-full h-72 sm:h-80 relative flex items-center justify-center">
-            <canvas ref={holoCanvasRef} className="w-full h-full block" />
+        {/* Center-Left AAA Game Navigation Menu */}
+        <div className="max-w-md my-auto space-y-3">
+          <div className="mb-6">
+            <span className="text-[10px] text-cyan-400 uppercase tracking-widest block mb-1">
+              SINGLE-PLAYER STEALTH SIMULATION
+            </span>
+            <h1 className="text-4xl sm:text-5xl font-display font-extrabold text-white tracking-wider">
+              NEON HEIST
+            </h1>
+            <p className="text-xs text-slate-400 tracking-wider mt-1">
+              STEAL THE IMPOSSIBLE. LEAVE NO TRACE.
+            </p>
+          </div>
 
-            {/* Hologram Floating Tag */}
-            <div className="absolute top-4 left-4 text-left font-mono-tech">
-              <span className="text-[10px] text-cyan-400 uppercase tracking-widest block">
-                SECTOR OVERVIEW
-              </span>
-              <h2 className="text-lg font-display font-bold text-white tracking-wide">
-                NIGHT CITY · SECTOR 07
-              </h2>
-              <span className="text-xs text-amber-400 flex items-center gap-1.5 mt-0.5">
-                <ShieldCheck className="w-3.5 h-3.5" /> SECURITY LEVEL: HIGH
-              </span>
-            </div>
-
-            {/* Center Deploy Button */}
-            <div className="absolute bottom-4">
+          <div className="space-y-2">
+            {menuOptions.map((opt, idx) => (
               <button
+                key={idx}
                 onClick={() => {
                   sound.playConfirm();
-                  onSelectOperation();
+                  opt.action();
                 }}
-                className="py-3 px-7 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-display font-bold text-xs tracking-wider uppercase transition-all shadow-[0_0_30px_rgba(6,182,212,0.4)] flex items-center gap-2 group"
+                onMouseEnter={() => sound.playUiHover()}
+                className="w-full text-left p-3.5 rounded-xl border border-white/5 bg-[#080d19]/60 hover:bg-slate-900/90 hover:border-cyan-500/40 text-slate-300 hover:text-white transition-all group flex items-center justify-between"
               >
-                <Radio className="w-4 h-4 animate-pulse" />
-                <span>ACCESS ACTIVE CONTRACTS</span>
+                <div className="flex items-center gap-3">
+                  <div className="text-slate-500 group-hover:text-cyan-400 transition-colors">
+                    {opt.icon}
+                  </div>
+                  <div>
+                    <div className="text-xs font-display font-bold text-white tracking-wider group-hover:text-cyan-300 transition-colors">
+                      {opt.label}
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      {opt.desc}
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
               </button>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* Right Column: Operative Dossier Information */}
-        <div className="lg:col-span-3 space-y-4 font-mono-tech">
-          <div className="p-5 rounded-2xl border border-white/5 bg-[#0a0f1d]/50 space-y-4">
-            <div className="border-b border-white/5 pb-3">
-              <span className="text-[10px] text-cyan-400 uppercase tracking-widest block mb-0.5">
-                OPERATIVE DOSSIER
-              </span>
-              <h3 className="text-base font-display font-bold text-white">
-                {player.codename}
-              </h3>
-              <span className="text-xs text-slate-400">
-                CLASS: {player.classTitle}
-              </span>
-            </div>
-
-            {/* Reputation Bar */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-400">REPUTATION</span>
-                <span className="text-cyan-300 font-bold">LEVEL {player.reputationLevel} · 82%</span>
-              </div>
-              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-cyan-400 rounded-full w-[82%] shadow-[0_0_8px_#22d3ee]" />
-              </div>
-            </div>
-
-            {/* Stats list */}
-            <div className="space-y-2 text-xs pt-2">
-              <div className="flex justify-between text-slate-400">
-                <span>CREDITS</span>
-                <span className="text-white font-bold">₡{player.credits.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>MISSIONS COMPLETED</span>
-                <span className="text-white font-bold">{player.stats.missionsCompleted}</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>DETECTION RATE</span>
-                <span className="text-emerald-400 font-bold">{player.stats.detectionPercentage}%</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>PERFECT GHOST RUNS</span>
-                <span className="text-cyan-400 font-bold">{player.stats.perfectInfiltrations}</span>
-              </div>
-            </div>
-          </div>
+        {/* Bottom Corner Security Connection Stamp */}
+        <div className="flex items-center justify-between text-[10px] text-slate-500 border-t border-white/5 pt-4">
+          <span>GHOSTNET // SECURE ENCRYPTED CONNECTION</span>
+          <span>VERSION 1.0 · OPERATIONAL</span>
         </div>
-      </div>
-
-      {/* Bottom Micro Telemetry Bar */}
-      <div className="pt-4 border-t border-white/5 flex items-center justify-between text-[11px] font-mono-tech text-slate-500">
-        <span>GHOST PROTOCOL STATUS: ENGAGED</span>
-        <span>SECURITY SCAN INTERVAL: 3000MS</span>
       </div>
     </div>
   );

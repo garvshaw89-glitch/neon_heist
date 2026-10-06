@@ -2,6 +2,203 @@ import { Mission } from '../types/game';
 
 export const MISSIONS: Mission[] = [
   {
+    id: 'op-00-operation-zero',
+    sectorId: 'sector-00',
+    sectorName: 'SECTOR 00 · UNDERGROUND SAFEHOUSE',
+    operationCode: 'OPERATION ZERO',
+    title: 'FIRST GHOST',
+    facilityName: 'NEXUS COLD STORAGE FACILITY',
+    targetName: 'NEURAL ENCRYPTION PROTOTYPE',
+    difficulty: 'RECRUIT',
+    basePayout: 20000,
+    risk: 'LOW',
+    securityRating: 2.0,
+    briefing: 'A subterranean live-fire test arranged by Vera. Infiltrate the decommissioned Nexus facility, bypass maintenance checkpoints, avoid detection by local patrols, and secure the prototype telemetry drive.',
+    secondaryObjectives: [
+      'Complete without triggering facility alarms',
+      'Neutralize zero guards (Ghost standard)',
+      'Locate and decrypt all security nodes'
+    ],
+    recommendedEquipment: [
+      'ACOUSTIC DISTRACTOR',
+      'NEURAL SCANNER',
+      'SILENT SOLES'
+    ],
+    intel: {
+      guards: 2,
+      cameras: 1,
+      drones: 0,
+      securityTier: 'DECOMMISSIONED FACILITY'
+    },
+    isTutorial: true,
+    mapWidth: 1800,
+    mapHeight: 1000,
+    playerStart: { x: 120, y: 820 },
+    vault: {
+      x: 1550,
+      y: 280,
+      width: 130,
+      height: 130,
+      targetName: 'NEURAL ENCRYPTION PROTOTYPE',
+      isCracked: false,
+      securityLayers: 2
+    },
+    extraction: {
+      x: 160,
+      y: 220,
+      radius: 75,
+      name: 'ROOFTOP EXTRACTION AERODYNE'
+    },
+    lights: [
+      { id: 'light-safehouse', x: 180, y: 820, radius: 180, isOn: true, color: '#fef08a' },
+      { id: 'light-patrol-room', x: 800, y: 750, radius: 220, isOn: true, color: '#e2e8f0' },
+      { id: 'light-cam-corridor', x: 1200, y: 750, radius: 200, isOn: true, color: '#e2e8f0' },
+      { id: 'light-switch-room', x: 1520, y: 750, radius: 220, isOn: true, color: '#fbbf24' },
+      { id: 'light-vault', x: 1610, y: 340, radius: 190, isOn: true, color: '#38bdf8' },
+      { id: 'light-rooftop', x: 160, y: 220, radius: 200, isOn: true, color: '#22d3ee' }
+    ],
+    envObjects: [
+      {
+        id: 'env-light-switch',
+        x: 1400,
+        y: 690,
+        width: 24,
+        height: 24,
+        type: 'LIGHT_SWITCH',
+        name: 'ROOM 4 MAIN LIGHT SWITCH',
+        isInteracted: false,
+        targetId: 'light-switch-room'
+      },
+      {
+        id: 'env-vent-escape',
+        x: 1350,
+        y: 280,
+        width: 32,
+        height: 32,
+        type: 'MAINTENANCE_VENT',
+        name: 'ROOFTOP VENT CONDUIT',
+        isInteracted: false,
+        targetId: 'vent-escape-door'
+      }
+    ],
+    walls: [
+      // Outer boundaries
+      { x1: 50, y1: 50, x2: 1750, y2: 50, type: 'SOLID' },
+      { x1: 1750, y1: 50, x2: 1750, y2: 950, type: 'SOLID' },
+      { x1: 1750, y1: 950, x2: 50, y2: 950, type: 'SOLID' },
+      { x1: 50, y1: 950, x2: 50, y2: 50, type: 'SOLID' },
+
+      // Room 1 (Safehouse) Partition
+      { x1: 280, y1: 700, x2: 280, y2: 950, type: 'SOLID' },
+      { x1: 50, y1: 700, x2: 280, y2: 700, type: 'SOLID' },
+
+      // Low Duct obstacle between safehouse and patrol corridor
+      { x1: 280, y1: 700, x2: 450, y2: 700, type: 'SOLID' },
+      { x1: 280, y1: 880, x2: 550, y2: 880, type: 'SOLID' },
+      { x1: 450, y1: 700, x2: 550, y2: 700, type: 'SOLID' },
+
+      // Shadow Chamber & Patrol room
+      { x1: 550, y1: 650, x2: 980, y2: 650, type: 'SOLID' },
+      { x1: 550, y1: 650, x2: 550, y2: 880, type: 'SOLID' },
+      { x1: 980, y1: 650, x2: 980, y2: 730, type: 'SOLID' },
+      { x1: 980, y1: 730, x2: 980, y2: 830, type: 'DOOR', doorId: 'tutorial-door-01', isOpen: false },
+      { x1: 980, y1: 830, x2: 980, y2: 950, type: 'SOLID' },
+
+      // Camera corridor
+      { x1: 980, y1: 650, x2: 1380, y2: 650, type: 'SOLID' },
+      { x1: 1380, y1: 650, x2: 1380, y2: 740, type: 'SOLID' },
+      { x1: 1380, y1: 820, x2: 1380, y2: 950, type: 'SOLID' }, // Door gap 740-820
+
+      // Distraction room to Vault stairwell
+      { x1: 1380, y1: 450, x2: 1750, y2: 450, type: 'SOLID' },
+      { x1: 1480, y1: 450, x2: 1480, y2: 200, type: 'SOLID' },
+      { x1: 1480, y1: 200, x2: 1750, y2: 200, type: 'SOLID' },
+
+      // Upper floor / Escape rooftop partition
+      { x1: 50, y1: 450, x2: 1380, y2: 450, type: 'SOLID' },
+      { x1: 350, y1: 50, x2: 350, y2: 450, type: 'SOLID' },
+      { x1: 250, y1: 450, x2: 350, y2: 450, type: 'DOOR', doorId: 'vent-escape-door', isOpen: false }
+    ],
+    guards: [
+      {
+        id: 'tut-guard-01',
+        x: 820,
+        y: 780,
+        angle: 0,
+        speed: 1.0,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 680, y: 780 },
+          { x: 920, y: 780 },
+          { x: 920, y: 880 },
+          { x: 680, y: 880 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 260,
+        fov: Math.PI * 0.4
+      },
+      {
+        id: 'tut-guard-02',
+        x: 1560,
+        y: 800,
+        angle: -Math.PI * 0.5,
+        speed: 1.1,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 1560, y: 820 },
+          { x: 1560, y: 680 },
+          { x: 1680, y: 680 },
+          { x: 1680, y: 820 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 270,
+        fov: Math.PI * 0.42
+      }
+    ],
+    cameras: [
+      {
+        id: 'tut-cam-01',
+        x: 1020,
+        y: 670,
+        angle: 0.8,
+        baseAngle: 0.8,
+        sweepAngle: 1.1,
+        sweepSpeed: 0.7,
+        range: 300,
+        fov: Math.PI * 0.36,
+        isHacked: false,
+        isLooping: false,
+        isPowerOff: false
+      }
+    ],
+    drones: [],
+    lasers: [],
+    terminals: [
+      {
+        id: 'term-tut-door',
+        x: 930,
+        y: 700,
+        type: 'SIGNAL',
+        name: 'SECURITY CHECKPOINT BUS',
+        isHacked: false,
+        unlocksDoorId: 'tutorial-door-01',
+        description: 'Rotate waveguide nodes to disengage physical magnetic seal.'
+      },
+      {
+        id: 'term-tut-cam',
+        x: 1220,
+        y: 680,
+        type: 'CODE',
+        name: 'AURORA-7 CAMERA INTERFACE',
+        isHacked: false,
+        disablesCameraId: 'tut-cam-01',
+        description: 'Bypass optic bus buffer to disable or loop surveillance sweep.'
+      }
+    ]
+  },
+  {
     id: 'op-01-silent-entry',
     sectorId: 'sector-01',
     sectorName: 'SECTOR 01 · FINANCIAL DISTRICT',

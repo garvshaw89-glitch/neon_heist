@@ -42,6 +42,7 @@ export interface Guard {
   searchTimer?: number;
   stunTimer?: number;
   radioTimer?: number;
+  voiceLine?: GuardVoiceLine;
 }
 
 export interface SecurityCamera {
@@ -134,6 +135,51 @@ export interface DistractionDevice {
   duration: number;
 }
 
+export interface LightSource {
+  id: string;
+  x: number;
+  y: number;
+  radius: number;
+  isOn: boolean;
+  color?: string; // e.g. '#fef08a' or '#e2e8f0' or '#ef4444'
+  flicker?: boolean;
+}
+
+export interface EnvironmentalObject {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  type: 'LIGHT_SWITCH' | 'MAINTENANCE_VENT' | 'CIRCUIT_BREAKER' | 'SECURITY_SAFE';
+  name: string;
+  isInteracted: boolean;
+  targetId?: string; // linked light or door
+}
+
+export type TutorialStep = 
+  | 'WAKEUP'
+  | 'MOVE'
+  | 'SPRINT'
+  | 'CROUCH'
+  | 'SHADOWS'
+  | 'GUARD_PATROL'
+  | 'SCANNER'
+  | 'HACK_DOOR'
+  | 'CAMERA'
+  | 'CAMERA_HACK'
+  | 'DISTRACTION'
+  | 'LIGHT_SWITCH'
+  | 'TARGET_CASE'
+  | 'ALARM_TWIST'
+  | 'ROOFTOP_ESCAPE'
+  | 'EXTRACTION';
+
+export interface GuardVoiceLine {
+  text: string;
+  timer: number;
+}
+
 export interface Mission {
   id: string;
   sectorId: string;
@@ -166,6 +212,9 @@ export interface Mission {
   drones: Drone[];
   lasers: LaserGrid[];
   terminals: Terminal[];
+  lights?: LightSource[];
+  envObjects?: EnvironmentalObject[];
+  isTutorial?: boolean;
 }
 
 export interface EquipmentItem {

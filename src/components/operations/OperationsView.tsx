@@ -18,6 +18,7 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
   const [showContractModal, setShowContractModal] = useState(false);
 
   const sectors = [
+    { id: 'sector-00', name: 'SECTOR 00 · UNDERGROUND', status: 'SAFEHOUSE' },
     { id: 'sector-01', name: 'SECTOR 01 · FINANCIAL DISTRICT', status: 'INFILTRATED' },
     { id: 'sector-02', name: 'SECTOR 02 · CORPORATE ZONE', status: 'ACTIVE THREAT' },
     { id: 'sector-03', name: 'SECTOR 03 · INDUSTRIAL CORE', status: 'MIL-SPEC LOCKDOWN' },
@@ -82,10 +83,11 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
 
               // Position coordinates on grid
               const positions = [
-                { top: '65%', left: '22%' },
-                { top: '35%', left: '50%' },
-                { top: '25%', left: '78%' },
-                { top: '75%', left: '72%' }
+                { top: '80%', left: '16%' }, // Operation Zero
+                { top: '60%', left: '34%' }, // Operation 01
+                { top: '35%', left: '50%' }, // Operation 02
+                { top: '22%', left: '72%' }, // Operation 03
+                { top: '75%', left: '80%' }  // Operation 04
               ];
               const pos = positions[idx] || { top: '50%', left: '50%' };
 

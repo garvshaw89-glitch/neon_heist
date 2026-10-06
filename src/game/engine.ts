@@ -1,4 +1,19 @@
-import { Point, Wall, Guard, SecurityCamera, Drone, LaserGrid } from '../types/game';
+import { Point, Wall, Guard, SecurityCamera, Drone, LaserGrid, LightSource } from '../types/game';
+
+// Check if player point is in shadow (not directly illuminated by any active light)
+export function isPointInShadow(pos: Point, lights: LightSource[] = [], walls: Wall[] = []): boolean {
+  if (!lights || lights.length === 0) return true;
+  for (const light of lights) {
+    if (!light.isOn) continue;
+    const dist = Math.hypot(pos.x - light.x, pos.y - light.y);
+    if (dist < light.radius) {
+      if (hasLineOfSight({ x: light.x, y: light.y }, pos, walls)) {
+        return false; // Point is in light
+      }
+    }
+  }
+  return true; // Point is in shadow
+}
 
 // Check if segment AB intersects segment CD
 export function getLineIntersection(
@@ -166,17 +181,30 @@ export function updateGuardAI(
   isCrouched: boolean,
   walls: Wall[],
   dt: number, // in seconds
+  inShadow: boolean = false,
   onSuspicion?: () => void,
   onAlert?: () => void
 ): { guard: Guard; detected: boolean } {
   const g = { ...guard };
   let detected = false;
 
+  // Update voice line timer
+  if (g.voiceLine) {
+    g.voiceLine = {
+      ...g.voiceLine,
+      timer: g.voiceLine.timer - dt
+    };
+    if (g.voiceLine.timer <= 0) {
+      delete g.voiceLine;
+    }
+  }
+
   if (g.stunTimer && g.stunTimer > 0) {
     g.stunTimer -= dt;
     if (g.stunTimer <= 0) {
       g.state = 'INVESTIGATE';
       g.investigateTarget = { ...playerPos };
+      g.voiceLine = { text: "Ugh... head hurts. What happened?", timer: 3.5 };
     }
     return { guard: g, detected: false };
   }
@@ -188,8 +216,11 @@ export function updateGuardAI(
   const distToPlayer = Math.hypot(playerPos.x - g.x, playerPos.y - g.y);
 
   if (clearSight) {
-    // Alert builds up rapidly when visible
-    const alertRate = isCrouched ? 45 : 75; // points per sec
+    // Alert builds up rapidly when visible; shadows drastically slow detection!
+    let alertRate = isCrouched ? 45 : 75; // points per sec
+    if (inShadow) {
+      alertRate *= 0.32; // In dark shadow, guard takes 3x longer to recognize silhouette
+    }
     const proximityMultiplier = Math.max(1, (g.sightRadius / Math.max(40, distToPlayer)) * 1.5);
     g.alertLevel = Math.min(100, g.alertLevel + alertRate * proximityMultiplier * dt);
 
@@ -199,14 +230,17 @@ export function updateGuardAI(
 
     if (g.alertLevel > 30 && g.state === 'PATROL') {
       g.state = 'SUSPICIOUS';
+      g.voiceLine = { text: "Who's over there?", timer: 3.0 };
       onSuspicion?.();
     }
     if (g.alertLevel > 60 && g.state !== 'ALERT') {
       g.state = 'INVESTIGATE';
       g.investigateTarget = { ...playerPos };
+      g.voiceLine = { text: "Hold up, saw movement.", timer: 3.0 };
     }
     if (g.alertLevel >= 95) {
       g.state = 'ALERT';
+      g.voiceLine = { text: "INTRUDER! SOUND THE ALARM!", timer: 4.0 };
       detected = true;
       onAlert?.();
     }

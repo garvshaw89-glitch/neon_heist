@@ -45,6 +45,9 @@ export default function App() {
   const handleEnterNetwork = (isNewGame: boolean) => {
     if (isNewGame) {
       resetProgress();
+      setInIntro(false);
+      handleStartMission(MISSIONS[0]);
+      return;
     }
     setInIntro(false);
   };
@@ -124,6 +127,7 @@ export default function App() {
             player={player}
             onNavigate={setCurrentTab}
             onSelectOperation={() => setCurrentTab('OPERATIONS')}
+            onPlayTutorial={() => handleStartMission(MISSIONS[0])}
           />
         )}
 

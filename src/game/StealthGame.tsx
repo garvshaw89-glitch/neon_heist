@@ -1,17 +1,31 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { Mission, Point, Guard, SecurityCamera, LaserGrid, Terminal, PlayStyle, MissionResult, Wall } from '../types/game';
+import React, { useRef, useEffect, useState } from 'react';
+import {
+  Mission,
+  Point,
+  Guard,
+  SecurityCamera,
+  LaserGrid,
+  Terminal,
+  PlayStyle,
+  MissionResult,
+  Wall,
+  LightSource,
+  EnvironmentalObject,
+  TutorialStep
+} from '../types/game';
 import { sound } from './audio';
 import {
   calculateVisionPolygon,
   resolveWallCollisions,
   updateGuardAI,
-  hasLineOfSight
+  hasLineOfSight,
+  isPointInShadow
 } from './engine';
 import { HackModal } from '../components/hacking/HackModal';
 import { CameraTerminalModal } from '../components/cameras/CameraTerminalModal';
 import { VaultCrackModal } from '../components/vault/VaultCrackModal';
 import { RadioDialogue, DialogueMessage } from '../components/dialogue/RadioDialogue';
-import { Shield, Eye, Zap, Radio, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Shield, Eye, Zap, Radio, ArrowLeft, Scan, Volume2, CloudRain } from 'lucide-react';
 
 interface StealthGameProps {
   mission: Mission;
@@ -26,25 +40,30 @@ export const StealthGame: React.FC<StealthGameProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Gameplay state
+  // Player Kinematics & States
   const [playerPos, setPlayerPos] = useState<Point>({ ...mission.playerStart });
   const [playerAngle, setPlayerAngle] = useState(0);
   const [isCrouched, setIsCrouched] = useState(false);
+  const [isSprinting, setIsSprinting] = useState(false);
+  const [isScannerActive, setIsScannerActive] = useState(false);
+  const [scannerEnergy, setScannerEnergy] = useState(100);
   const [isCloaked, setIsCloaked] = useState(false);
   const [cloakTimer, setCloakTimer] = useState(0);
   const [cloakCooldown, setCloakCooldown] = useState(0);
-  const [empCooldown, setEmpCooldown] = useState(0);
+  const [distractionCooldown, setDistractionCooldown] = useState(0);
   const [energy, setEnergy] = useState(100);
-  const [health, setHealth] = useState(100);
+  const [inShadow, setInShadow] = useState(false);
 
-  // Entities state
+  // Level Entities
   const [guards, setGuards] = useState<Guard[]>(() => JSON.parse(JSON.stringify(mission.guards)));
   const [cameras, setCameras] = useState<SecurityCamera[]>(() => JSON.parse(JSON.stringify(mission.cameras)));
   const [lasers, setLasers] = useState<LaserGrid[]>(() => JSON.parse(JSON.stringify(mission.lasers)));
   const [terminals, setTerminals] = useState<Terminal[]>(() => JSON.parse(JSON.stringify(mission.terminals)));
   const [walls, setWalls] = useState<Wall[]>(() => JSON.parse(JSON.stringify(mission.walls)));
-  
-  // Heist progression
+  const [lights, setLights] = useState<LightSource[]>(() => JSON.parse(JSON.stringify(mission.lights || [])));
+  const [envObjects, setEnvObjects] = useState<EnvironmentalObject[]>(() => JSON.parse(JSON.stringify(mission.envObjects || [])));
+
+  // Heist Progression & Tutorial State
   const [targetAcquired, setTargetAcquired] = useState(false);
   const [alarmsActive, setAlarmsActive] = useState(false);
   const [detectionPercent, setDetectionPercent] = useState(0);
@@ -53,54 +72,125 @@ export const StealthGame: React.FC<StealthGameProps> = ({
   const [systemsHacked, setSystemsHacked] = useState(0);
   const [missionStartTime] = useState(Date.now());
 
-  // Interactive prompts
+  // Tutorial Progression Step
+  const [tutorialStep, setTutorialStep] = useState<TutorialStep>(
+    mission.isTutorial ? 'WAKEUP' : 'MOVE'
+  );
+  const [tutorialHint, setTutorialHint] = useState<string | null>(
+    mission.isTutorial ? 'W A S D · MOVE' : null
+  );
+
+  // Dialogues & Modals
+  const [currentDialogue, setCurrentDialogue] = useState<DialogueMessage | null>(() => {
+    if (mission.isTutorial) {
+      return {
+        speaker: 'VERA',
+        role: 'REMOTE OPERATOR',
+        text: "You're awake. Good. Tonight is simple: get inside, take the package, get out. No alarms. No bodies. No mistakes."
+      };
+    }
+    return {
+      speaker: 'VERA',
+      role: 'REMOTE OPERATOR',
+      text: `Infiltration vector confirmed at ${mission.facilityName}. Maintain stealth discipline.`
+    };
+  });
+
   const [activeTerminal, setActiveTerminal] = useState<Terminal | null>(null);
   const [showCameraTerminal, setShowCameraTerminal] = useState(false);
   const [showVaultCrack, setShowVaultCrack] = useState(false);
   const [nearbyPrompt, setNearbyPrompt] = useState<string | null>(null);
   const [takedownGuard, setTakedownGuard] = useState<Guard | null>(null);
 
-  // Radio Dialogue
-  const [currentDialogue, setCurrentDialogue] = useState<DialogueMessage | null>({
-    speaker: 'VERA',
-    role: 'TACTICAL OPERATOR',
-    text: `You are inside ${mission.facilityName}. Avoid light cones and locate the terminal network.`
-  });
-
-  // Sound noise rings
+  // Noise & Decoy Arrays
   const noiseWavesRef = useRef<{ x: number; y: number; r: number; maxR: number; opacity: number }[]>([]);
+  const distractionDecoysRef = useRef<{ x: number; y: number; timer: number }[]>([]);
 
-  // Input keys
+  // Rain Particles & Lightning
+  const rainDropsRef = useRef<{ x: number; y: number; l: number; v: number }[]>([]);
+  const lightningRef = useRef<{ alpha: number; timer: number }>({ alpha: 0, timer: 12 });
+
+  // Camera scroll offset & recoil shake
+  const cameraOffsetRef = useRef<Point>({ x: 0, y: 0 });
+  const cameraShakeRef = useRef<number>(0);
+
+  // Input states
   const keysRef = useRef<{ [key: string]: boolean }>({});
   const mousePosRef = useRef<Point>({ x: 0, y: 0 });
+  const movedDistanceRef = useRef<number>(0);
 
-  // Camera scroll offset
-  const cameraOffsetRef = useRef<Point>({ x: 0, y: 0 });
+  // Initialize Rain drops
+  useEffect(() => {
+    const drops = [];
+    for (let i = 0; i < 90; i++) {
+      drops.push({
+        x: Math.random() * mission.mapWidth,
+        y: Math.random() * mission.mapHeight,
+        l: Math.random() * 18 + 10,
+        v: Math.random() * 14 + 16
+      });
+    }
+    rainDropsRef.current = drops;
+  }, [mission.mapWidth, mission.mapHeight]);
 
-  // Handle keyboard inputs
+  // Keyboard and Mouse input listeners
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      keysRef.current[e.key.toLowerCase()] = true;
+      const key = e.key.toLowerCase();
+      keysRef.current[key] = true;
 
-      if (e.key.toLowerCase() === 'c') {
-        setIsCrouched(prev => !prev);
+      if (e.key === 'Shift') {
+        setIsSprinting(true);
+        if (mission.isTutorial && tutorialStep === 'SPRINT') {
+          setTutorialStep('CROUCH');
+          setTutorialHint('C OR CTRL · CROUCH');
+          setCurrentDialogue({
+            speaker: 'VERA',
+            role: 'REMOTE OPERATOR',
+            text: "Low maintenance duct ahead. Stay low."
+          });
+        }
       }
-      if (e.key.toLowerCase() === 'q') {
-        activateCloak();
+
+      if (key === 'c' || e.key === 'Control') {
+        setIsCrouched(prev => {
+          const next = !prev;
+          if (next && mission.isTutorial && tutorialStep === 'CROUCH') {
+            setTutorialStep('SHADOWS');
+            setTutorialHint(null);
+            setCurrentDialogue({
+              speaker: 'VERA',
+              role: 'REMOTE OPERATOR',
+              text: "Quiet. Keep moving. Watch the shadows."
+            });
+          }
+          return next;
+        });
       }
-      if (e.key.toLowerCase() === 'f') {
-        activateEmp();
+
+      if (key === 'q') {
+        toggleScanner();
       }
-      if (e.key === ' ' && takedownGuard) {
+
+      if (key === 'f') {
+        throwDistractionDecoy();
+      }
+
+      if (key === ' ' && takedownGuard) {
         performTakedown(takedownGuard.id);
       }
-      if (e.key.toLowerCase() === 'e') {
+
+      if (key === 'e') {
         handleInteract();
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      keysRef.current[e.key.toLowerCase()] = false;
+      const key = e.key.toLowerCase();
+      keysRef.current[key] = false;
+      if (e.key === 'Shift') {
+        setIsSprinting(false);
+      }
     };
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -121,62 +211,130 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [takedownGuard, activeTerminal, showVaultCrack]);
+  }, [tutorialStep, takedownGuard, mission.isTutorial, scannerEnergy, isScannerActive]);
 
-  // Activate Cloak
-  const activateCloak = () => {
-    if (cloakCooldown > 0 || energy < 25) return;
-    setIsCloaked(true);
-    setCloakTimer(8.0);
-    setCloakCooldown(24.0);
-    setEnergy(prev => Math.max(0, prev - 25));
-    sound.playCloak(true);
-  };
-
-  // Activate EMP / Distraction
-  const activateEmp = () => {
-    if (empCooldown > 0) return;
-    setEmpCooldown(18.0);
-    sound.playEmpPulse();
-
-    // Disable nearby cameras and stun guards within 350px
-    setGuards(prev => prev.map(g => {
-      const dist = Math.hypot(g.x - playerPos.x, g.y - playerPos.y);
-      if (dist < 380) {
-        return { ...g, state: 'STUNNED', stunTimer: 9.0 };
+  // Toggle Realistic AR Scanner
+  const toggleScanner = () => {
+    if (scannerEnergy <= 5 && !isScannerActive) return;
+    setIsScannerActive(prev => {
+      const next = !prev;
+      sound.playScannerMode(next);
+      if (next && mission.isTutorial && tutorialStep === 'SCANNER') {
+        setTutorialStep('HACK_DOOR');
+        setTutorialHint('E · INTERFACE TERMINAL');
+        setCurrentDialogue({
+          speaker: 'VERA',
+          role: 'REMOTE OPERATOR',
+          text: "Terminal located. Interface with it and bypass the magnetic seal."
+        });
       }
-      return g;
-    }));
-
-    setCameras(prev => prev.map(c => {
-      const dist = Math.hypot(c.x - playerPos.x, c.y - playerPos.y);
-      if (dist < 420) {
-        return { ...c, isPowerOff: true, disabledTimer: 10.0 };
-      }
-      return c;
-    }));
-
-    // Spawn massive noise wave
-    noiseWavesRef.current.push({
-      x: playerPos.x,
-      y: playerPos.y,
-      r: 10,
-      maxR: 350,
-      opacity: 0.8
+      return next;
     });
   };
 
-  // Perform stealth takedown
+  // Throw Acoustic Distraction Device
+  const throwDistractionDecoy = () => {
+    if (distractionCooldown > 0) return;
+    setDistractionCooldown(10.0);
+    sound.playLightSwitch();
+
+    // Aim target toward mouse (clamped to 300px distance)
+    const dx = mousePosRef.current.x - playerPos.x;
+    const dy = mousePosRef.current.y - playerPos.y;
+    const dist = Math.hypot(dx, dy);
+    const targetDist = Math.min(260, dist);
+    const targetX = playerPos.x + (dist > 0 ? (dx / dist) * targetDist : 100);
+    const targetY = playerPos.y + (dist > 0 ? (dy / dist) * targetDist : 0);
+
+    distractionDecoysRef.current.push({ x: targetX, y: targetY, timer: 3.5 });
+
+    // Spawn sound wave at target
+    setTimeout(() => {
+      sound.playUiHover();
+      noiseWavesRef.current.push({
+        x: targetX,
+        y: targetY,
+        r: 6,
+        maxR: 240,
+        opacity: 0.75
+      });
+
+      // Alert guards in radius with chatter
+      setGuards(prev => prev.map(g => {
+        const d = Math.hypot(g.x - targetX, g.y - targetY);
+        if (d < 300 && g.state !== 'ALERT' && g.state !== 'STUNNED') {
+          return {
+            ...g,
+            state: 'INVESTIGATE',
+            investigateTarget: { x: targetX, y: targetY },
+            voiceLine: { text: "You hear that? Checking it out.", timer: 3.0 }
+          };
+        }
+        return g;
+      }));
+
+      if (mission.isTutorial && tutorialStep === 'DISTRACTION') {
+        setTutorialStep('LIGHT_SWITCH');
+        setTutorialHint('E · FLIP ROOM LIGHT SWITCH');
+        setCurrentDialogue({
+          speaker: 'VERA',
+          role: 'REMOTE OPERATOR',
+          text: "He took the bait. There's a light switch by the partition. Cut the power."
+        });
+      }
+    }, 280);
+  };
+
+  // Perform non-lethal sleeper takedown
   const performTakedown = (guardId: string) => {
     sound.playConfirm();
-    setGuards(prev => prev.map(g => g.id === guardId ? { ...g, state: 'STUNNED', stunTimer: 999 } : g));
+    cameraShakeRef.current = 6;
+    setGuards(prev => prev.map(g => {
+      if (g.id === guardId) {
+        return {
+          ...g,
+          state: 'STUNNED',
+          stunTimer: 999,
+          voiceLine: { text: "Urgh...", timer: 2.0 }
+        };
+      }
+      return g;
+    }));
     setGuardsNeutralized(prev => prev + 1);
     setTakedownGuard(null);
   };
 
-  // Interact trigger
+  // Interact trigger (Terminals, Light switches, Vents, Vault, Extraction)
   const handleInteract = () => {
-    // 1. Terminal
+    // 1. Environmental Objects (Light switch, Maintenance vent)
+    const nearbyEnv = envObjects.find(
+      obj => Math.hypot(obj.x + obj.width / 2 - playerPos.x, obj.y + obj.height / 2 - playerPos.y) < 55
+    );
+    if (nearbyEnv) {
+      if (nearbyEnv.type === 'LIGHT_SWITCH') {
+        sound.playLightSwitch();
+        setLights(prev => prev.map(l => l.id === nearbyEnv.targetId ? { ...l, isOn: !l.isOn } : l));
+        setEnvObjects(prev => prev.map(o => o.id === nearbyEnv.id ? { ...o, isInteracted: !o.isInteracted } : o));
+
+        if (mission.isTutorial && tutorialStep === 'LIGHT_SWITCH') {
+          setTutorialStep('TARGET_CASE');
+          setTutorialHint('E · SECURE ASSET FLIGHT CASE');
+          setCurrentDialogue({
+            speaker: 'VERA',
+            role: 'REMOTE OPERATOR',
+            text: "Lights out. Pitch black gives you the advantage. Proceed to the vault."
+          });
+        }
+        return;
+      }
+      if (nearbyEnv.type === 'MAINTENANCE_VENT') {
+        sound.playHydraulicDoor();
+        setWalls(prev => prev.map(w => w.doorId === nearbyEnv.targetId ? { ...w, isOpen: true } : w));
+        return;
+      }
+    }
+
+    // 2. Terminal Hack
     const term = terminals.find(t => !t.isHacked && Math.hypot(t.x - playerPos.x, t.y - playerPos.y) < 55);
     if (term) {
       sound.playUiClick();
@@ -184,15 +342,15 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       return;
     }
 
-    // 2. Vault
+    // 3. Vault Case
     const v = mission.vault;
-    if (!targetAcquired && Math.hypot((v.x + v.width / 2) - playerPos.x, (v.y + v.height / 2) - playerPos.y) < 90) {
-      sound.playUiClick();
+    if (!targetAcquired && Math.hypot(v.x + v.width / 2 - playerPos.x, v.y + v.height / 2 - playerPos.y) < 85) {
+      sound.playFlightCaseOpen();
       setShowVaultCrack(true);
       return;
     }
 
-    // 3. Extraction
+    // 4. Extraction
     const ext = mission.extraction;
     if (targetAcquired && Math.hypot(ext.x - playerPos.x, ext.y - playerPos.y) < ext.radius) {
       completeExtraction();
@@ -200,49 +358,76 @@ export const StealthGame: React.FC<StealthGameProps> = ({
     }
   };
 
-  // Successful terminal hack
+  // Terminal hack complete
   const handleTerminalSuccess = () => {
     if (!activeTerminal) return;
     setSystemsHacked(prev => prev + 1);
     setTerminals(prev => prev.map(t => t.id === activeTerminal.id ? { ...t, isHacked: true } : t));
 
-    // Handle unlocks
     if (activeTerminal.unlocksDoorId) {
-      const doorId = activeTerminal.unlocksDoorId;
-      setWalls(prev => prev.map(w => w.doorId === doorId ? { ...w, isOpen: true } : w));
+      sound.playHydraulicDoor();
+      setWalls(prev => prev.map(w => w.doorId === activeTerminal.unlocksDoorId ? { ...w, isOpen: true } : w));
     }
     if (activeTerminal.disablesCameraId) {
-      const camId = activeTerminal.disablesCameraId;
-      setCameras(prev => prev.map(c => c.id === camId ? { ...c, isPowerOff: true } : c));
+      setCameras(prev => prev.map(c => c.id === activeTerminal.disablesCameraId ? { ...c, isPowerOff: true } : c));
     }
     if (activeTerminal.disablesLaserId) {
-      const laserId = activeTerminal.disablesLaserId;
-      setLasers(prev => prev.map(l => l.id === laserId ? { ...l, isActive: false, isHacked: true } : l));
+      setLasers(prev => prev.map(l => l.id === activeTerminal.disablesLaserId ? { ...l, isActive: false, isHacked: true } : l));
+    }
+
+    // Tutorial advancement
+    if (mission.isTutorial && tutorialStep === 'HACK_DOOR') {
+      setTutorialStep('CAMERA');
+      setTutorialHint(null);
+      setCurrentDialogue({
+        speaker: 'VERA',
+        role: 'REMOTE OPERATOR',
+        text: "Magnetic seal disengaged. Aurora-7 camera in the next corridor. Don't let its sweep touch you."
+      });
     }
 
     setActiveTerminal(null);
-    setCurrentDialogue({
-      speaker: 'VERA',
-      role: 'TACTICAL OPERATOR',
-      text: 'Sub-system overridden. Security perimeter updated.'
-    });
   };
 
-  // Complete Vault cracking
+  // Vault cracked & The Twist sequence trigger
   const handleVaultComplete = () => {
     setTargetAcquired(true);
     setShowVaultCrack(false);
-    setCurrentDialogue({
-      speaker: 'VERA',
-      role: 'TACTICAL OPERATOR',
-      text: `Target secured: ${mission.targetName}. Emergency lockdown initiated. Extract immediately!`
-    });
 
-    // Make guards more alert
-    setGuards(prev => prev.map(g => ({ ...g, speed: g.speed * 1.2 })));
+    if (mission.isTutorial) {
+      // The Twist!
+      setAlarmsActive(true);
+      sound.startAlarm();
+      cameraShakeRef.current = 15;
+      setTutorialStep('ROOFTOP_ESCAPE');
+      setTutorialHint('ESCAPE THROUGH ROOFTOP VENT TO EXTRACTION');
+
+      // Unlock rooftop escape vent door
+      setWalls(prev => prev.map(w => w.doorId === 'vent-escape-door' ? { ...w, isOpen: true } : w));
+
+      // Guards go into search mode
+      setGuards(prev => prev.map(g => ({
+        ...g,
+        state: 'SEARCH',
+        speed: g.speed * 1.3,
+        voiceLine: { text: "Lockdown initiated! Search the sector!", timer: 4.0 }
+      })));
+
+      setCurrentDialogue({
+        speaker: 'VERA',
+        role: 'REMOTE OPERATOR',
+        text: "...That's not supposed to happen! System has your signature! Run! Rooftop vent opened!"
+      });
+    } else {
+      setCurrentDialogue({
+        speaker: 'VERA',
+        role: 'REMOTE OPERATOR',
+        text: `Target secured: ${mission.targetName}. Lockdown initiated. Proceed to extraction zone immediately!`
+      });
+    }
   };
 
-  // Extraction completion
+  // Complete Extraction
   const completeExtraction = () => {
     sound.playConfirm();
     sound.stopAlarm();
@@ -276,7 +461,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
     });
   };
 
-  // Main simulation and render loop
+  // Main Simulation & Rendering Loop
   useEffect(() => {
     let animationFrameId: number;
     let lastTime = performance.now();
@@ -286,7 +471,38 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       const dt = Math.max(0.001, Math.min(0.05, isNaN(elapsed) || elapsed < 0 ? 0.016 : elapsed));
       lastTime = currentTime;
 
-      // 1. UPDATE TIMERS & COOLDOWNS
+      // Camera Shake decay
+      if (cameraShakeRef.current > 0) {
+        cameraShakeRef.current = Math.max(0, cameraShakeRef.current - 12 * dt);
+      }
+
+      // Scanner Energy Drain / Recharge
+      if (isScannerActive) {
+        setScannerEnergy(prev => {
+          const next = prev - 15 * dt;
+          if (next <= 0) {
+            setIsScannerActive(false);
+            sound.playScannerMode(false);
+            return 0;
+          }
+          return next;
+        });
+      } else {
+        setScannerEnergy(prev => Math.min(100, prev + 8 * dt));
+      }
+
+      // Lightning Thunder Cycle
+      lightningRef.current.timer -= dt;
+      if (lightningRef.current.timer <= 0) {
+        lightningRef.current.alpha = 0.85;
+        lightningRef.current.timer = Math.random() * 16 + 10;
+        sound.playThunder();
+      }
+      if (lightningRef.current.alpha > 0) {
+        lightningRef.current.alpha = Math.max(0, lightningRef.current.alpha - 2.5 * dt);
+      }
+
+      // Cooldowns
       if (cloakTimer > 0) {
         setCloakTimer(prev => {
           const next = prev - dt;
@@ -298,16 +514,11 @@ export const StealthGame: React.FC<StealthGameProps> = ({
           return next;
         });
       }
-      if (cloakCooldown > 0) {
-        setCloakCooldown(prev => Math.max(0, prev - dt));
-      }
-      if (empCooldown > 0) {
-        setEmpCooldown(prev => Math.max(0, prev - dt));
-      }
-      // Regenerate energy slowly
-      setEnergy(prev => Math.min(100, prev + 4 * dt));
+      if (cloakCooldown > 0) setCloakCooldown(prev => Math.max(0, prev - dt));
+      if (distractionCooldown > 0) setDistractionCooldown(prev => Math.max(0, prev - dt));
+      setEnergy(prev => Math.min(100, prev + 5 * dt));
 
-      // 2. PLAYER MOVEMENT
+      // 1. KINEMATIC PLAYER MOVEMENT
       let moveX = 0;
       let moveY = 0;
       if (keysRef.current['w'] || keysRef.current['arrowup']) moveY -= 1;
@@ -316,40 +527,59 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       if (keysRef.current['d'] || keysRef.current['arrowright']) moveX += 1;
 
       const isMoving = moveX !== 0 || moveY !== 0;
-      let baseSpeed = isCrouched ? 2.2 : 3.8;
-      if (isCloaked) baseSpeed *= 1.15;
+      let speed = isCrouched ? 2.0 : isSprinting ? 4.8 : 3.2;
+      if (isCloaked) speed *= 1.1;
 
       let newX = playerPos.x;
       let newY = playerPos.y;
 
       if (isMoving) {
         const len = Math.hypot(moveX, moveY);
-        newX += (moveX / len) * baseSpeed * 60 * dt;
-        newY += (moveY / len) * baseSpeed * 60 * dt;
+        const stepX = (moveX / len) * speed * 60 * dt;
+        const stepY = (moveY / len) * speed * 60 * dt;
+        newX += stepX;
+        newY += stepY;
 
-        // Footstep sound & noise ripples
-        if (Math.random() < 0.08) {
+        movedDistanceRef.current += Math.hypot(stepX, stepY);
+
+        // Tutorial trigger for movement
+        if (mission.isTutorial && tutorialStep === 'WAKEUP' && movedDistanceRef.current > 40) {
+          setTutorialStep('SPRINT');
+          setTutorialHint('HOLD SHIFT · SPRINT');
+          setCurrentDialogue({
+            speaker: 'VERA',
+            role: 'REMOTE OPERATOR',
+            text: "Good. Now run. Use SHIFT to sprint."
+          });
+        }
+
+        // Realistic Footstep Acoustics
+        if (Math.random() < (isSprinting ? 0.16 : 0.08)) {
           sound.playFootstep(isCrouched);
-          const noiseMaxR = isCrouched ? 30 : 95;
+          const noiseMaxR = isCrouched ? 18 : isSprinting ? 140 : 65;
           noiseWavesRef.current.push({
             x: newX,
             y: newY,
             r: 5,
             maxR: noiseMaxR,
-            opacity: 0.4
+            opacity: isSprinting ? 0.6 : 0.3
           });
         }
       }
 
-      // Rotate towards mouse
+      // Smooth aim rotation
       const aimAngle = Math.atan2(mousePosRef.current.y - playerPos.y, mousePosRef.current.x - playerPos.x);
       setPlayerAngle(aimAngle);
 
-      // Resolve player collisions
-      const resolvedPlayer = resolveWallCollisions({ x: newX, y: newY }, 16, walls);
-      setPlayerPos(resolvedPlayer);
+      // Collision against walls
+      const resolved = resolveWallCollisions({ x: newX, y: newY }, 15, walls);
+      setPlayerPos(resolved);
 
-      // 3. NOISE WAVES EXPANSION & GUARD HEARING
+      // Check shadow state
+      const playerInShadow = isPointInShadow(resolved, lights, walls);
+      setInShadow(playerInShadow);
+
+      // 2. NOISE WAVES EXPANSION & GUARDS REACTION
       noiseWavesRef.current = noiseWavesRef.current
         .map(wave => ({
           ...wave,
@@ -358,21 +588,21 @@ export const StealthGame: React.FC<StealthGameProps> = ({
         }))
         .filter(w => w.opacity > 0 && w.r > 0);
 
-      // Check if noise alerts guards
       noiseWavesRef.current.forEach(wave => {
         guards.forEach(g => {
           if (g.state === 'PATROL' || g.state === 'RETURN') {
-            const dist = Math.hypot(g.x - wave.x, g.y - wave.y);
-            if (dist < wave.r + 20) {
+            const d = Math.hypot(g.x - wave.x, g.y - wave.y);
+            if (d < wave.r + 20) {
               g.state = 'INVESTIGATE';
               g.investigateTarget = { x: wave.x, y: wave.y };
+              g.voiceLine = { text: "Did you hear that?", timer: 2.5 };
               sound.playSuspicionAlert();
             }
           }
         });
       });
 
-      // 4. CAMERAS SWEEP & DETECTION
+      // 3. CAMERAS SWEEP & LINE OF SIGHT
       let cameraDetected = false;
       const updatedCameras = cameras.map(cam => {
         if (cam.isPowerOff || cam.isLooping) {
@@ -383,11 +613,9 @@ export const StealthGame: React.FC<StealthGameProps> = ({
           return cam;
         }
 
-        // Sweep angle
         const sweep = Math.sin(currentTime * 0.001 * cam.sweepSpeed) * (cam.sweepAngle / 2);
         const currentAngle = cam.baseAngle + sweep;
 
-        // Check player in camera cone
         if (!isCloaked) {
           const inCone = Math.hypot(playerPos.x - cam.x, playerPos.y - cam.y) < cam.range;
           if (inCone) {
@@ -408,34 +636,10 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       });
       setCameras(updatedCameras);
 
-      // 5. LASER GRIDS CYCLING
-      const updatedLasers = lasers.map(laser => {
-        if (laser.isHacked || !laser.cycleInterval) return laser;
-        const totalCycle = laser.cycleInterval;
-        const activeDuration = totalCycle * 0.65;
-        const phase = (currentTime + (laser.cycleOffset || 0)) % totalCycle;
-        const active = phase < activeDuration;
-
-        // Check if player stepped through active laser
-        if (active && !laser.isHacked) {
-          const l1 = { x: laser.x1, y: laser.y1 };
-          const l2 = { x: laser.x2, y: laser.y2 };
-          const dist = Math.hypot(playerPos.x - l1.x, playerPos.y - l1.y); // simplified
-          // If close to laser segment
-          const lineDist = Math.abs((l2.y - l1.y) * playerPos.x - (l2.x - l1.x) * playerPos.y + l2.x * l1.y - l2.y * l1.x) /
-            Math.hypot(l2.y - l1.y, l2.x - l1.x);
-          if (lineDist < 12 && playerPos.x >= Math.min(l1.x, l2.x) - 10 && playerPos.x <= Math.max(l1.x, l2.x) + 10) {
-            cameraDetected = true;
-          }
-        }
-        return { ...laser, isActive: active };
-      });
-      setLasers(updatedLasers);
-
-      // 6. GUARD AI UPDATE
+      // 4. GUARD AI UPDATE (WITH SHADOW DAMPENING)
       let anyGuardDetected = false;
       let maxAlert = 0;
-      let nearestTakedownTarget: Guard | null = null;
+      let nearestTakedown: Guard | null = null;
 
       const updatedGuards = guards.map(guard => {
         const { guard: updated, detected } = updateGuardAI(
@@ -445,49 +649,50 @@ export const StealthGame: React.FC<StealthGameProps> = ({
           isCrouched,
           walls,
           dt,
+          playerInShadow,
           () => sound.playSuspicionAlert(),
           () => {
             sound.startAlarm();
             setAlarmsActive(true);
+            cameraShakeRef.current = 10;
           }
         );
 
         if (detected) anyGuardDetected = true;
         maxAlert = Math.max(maxAlert, updated.alertLevel);
 
-        // Check takedown opportunity (behind guard, not alerted)
+        // Flanking Takedown Opportunity (behind guard within 42px)
         const dist = Math.hypot(updated.x - playerPos.x, updated.y - playerPos.y);
         if (dist < 42 && updated.state !== 'ALERT' && updated.state !== 'STUNNED') {
-          // Check if behind
           const angleToPlayer = Math.atan2(playerPos.y - updated.y, playerPos.x - updated.x);
           let diff = Math.abs(angleToPlayer - updated.angle);
           while (diff > Math.PI) diff = Math.abs(diff - Math.PI * 2);
           if (diff > Math.PI * 0.5) {
-            nearestTakedownTarget = updated;
+            nearestTakedown = updated;
           }
         }
 
         return updated;
       });
       setGuards(updatedGuards);
-      setTakedownGuard(nearestTakedownTarget);
+      setTakedownGuard(nearestTakedown);
 
-      // Detection & Tension update
-      const overallDetection = Math.max(maxAlert, cameraDetected ? 90 : 0);
-      setDetectionPercent(overallDetection);
-      setHighestDetection(prev => Math.max(prev, overallDetection));
-      sound.setTensionLevel(overallDetection / 100);
+      // Overall Detection Calculation
+      const overall = Math.max(maxAlert, cameraDetected ? 90 : 0);
+      setDetectionPercent(overall);
+      setHighestDetection(prev => Math.max(prev, overall));
+      sound.setTensionLevel(overall / 100);
 
       if ((anyGuardDetected || cameraDetected) && !alarmsActive) {
         setAlarmsActive(true);
         sound.startAlarm();
       }
 
-      // Check nearby prompts
-      checkNearbyPrompts();
+      // Check context prompts
+      checkPrompts();
 
-      // 7. RENDER TO CANVAS
-      renderCanvas();
+      // Render physical scene to canvas
+      renderRealisticCanvas();
 
       animationFrameId = requestAnimationFrame(loop);
     };
@@ -498,138 +703,203 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       sound.stopAlarm();
       sound.stopTension();
     };
-  }, [playerPos, isCrouched, isCloaked, cloakTimer, cloakCooldown, empCooldown, energy, guards, cameras, lasers, terminals, walls, alarmsActive, targetAcquired]);
+  }, [
+    playerPos,
+    isCrouched,
+    isSprinting,
+    isScannerActive,
+    scannerEnergy,
+    isCloaked,
+    cloakTimer,
+    cloakCooldown,
+    distractionCooldown,
+    energy,
+    guards,
+    cameras,
+    lasers,
+    terminals,
+    walls,
+    lights,
+    envObjects,
+    alarmsActive,
+    targetAcquired,
+    tutorialStep
+  ]);
 
-  // Check nearby interactable prompts
-  const checkNearbyPrompts = () => {
+  // Contextual Prompts Check
+  const checkPrompts = () => {
+    // Environmental object (switch)
+    const nearbyEnv = envObjects.find(
+      o => Math.hypot(o.x + o.width / 2 - playerPos.x, o.y + o.height / 2 - playerPos.y) < 55
+    );
+    if (nearbyEnv) {
+      setNearbyPrompt(`[E] TOGGLE ${nearbyEnv.name}`);
+      return;
+    }
+
     // Terminal
     const term = terminals.find(t => !t.isHacked && Math.hypot(t.x - playerPos.x, t.y - playerPos.y) < 55);
     if (term) {
-      setNearbyPrompt(`[E] HACK: ${term.name}`);
+      setNearbyPrompt(`[E] INTERFACE: ${term.name}`);
       return;
     }
 
     // Vault
     const v = mission.vault;
-    if (!targetAcquired && Math.hypot((v.x + v.width / 2) - playerPos.x, (v.y + v.height / 2) - playerPos.y) < 90) {
-      setNearbyPrompt(`[E] ACCESS QUANTUM VAULT`);
+    if (!targetAcquired && Math.hypot(v.x + v.width / 2 - playerPos.x, v.y + v.height / 2 - playerPos.y) < 85) {
+      setNearbyPrompt(`[E] SECURE PROTOTYPE FLIGHT CASE`);
       return;
     }
 
     // Extraction
     const ext = mission.extraction;
     if (targetAcquired && Math.hypot(ext.x - playerPos.x, ext.y - playerPos.y) < ext.radius) {
-      setNearbyPrompt(`[E] COMPLETE EXTRACTION`);
+      setNearbyPrompt(`[E] BOARD EXTRACTION AERODYNE`);
       return;
     }
 
     setNearbyPrompt(null);
   };
 
-  // Render everything onto Canvas
-  const renderCanvas = () => {
+  // Render Realistic Physical World
+  const renderRealisticCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Viewport follow camera
     const screenW = canvas.width;
     const screenH = canvas.height;
-    const camX = Math.max(0, Math.min(mission.mapWidth - screenW, playerPos.x - screenW / 2));
-    const camY = Math.max(0, Math.min(mission.mapHeight - screenH, playerPos.y - screenH / 2));
+
+    // Smooth follow camera with slight screen shake on alarms
+    const shakeX = (Math.random() - 0.5) * cameraShakeRef.current;
+    const shakeY = (Math.random() - 0.5) * cameraShakeRef.current;
+
+    const camX = Math.max(0, Math.min(mission.mapWidth - screenW, playerPos.x - screenW / 2 + shakeX));
+    const camY = Math.max(0, Math.min(mission.mapHeight - screenH, playerPos.y - screenH / 2 + shakeY));
     cameraOffsetRef.current = { x: camX, y: camY };
 
     ctx.save();
     ctx.clearRect(0, 0, screenW, screenH);
     ctx.translate(-camX, -camY);
 
-    // Floor texture: luxury dark carbon grid
-    ctx.fillStyle = '#06080e';
+    // 1. REALISTIC CONCRETE & BRUSHED TILES FLOOR
+    ctx.fillStyle = '#0a0d14';
     ctx.fillRect(0, 0, mission.mapWidth, mission.mapHeight);
 
-    // Subtle grid lines
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.025)';
+    // Physical slab seams (60px)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.02)';
     ctx.lineWidth = 1;
-    const gridSize = 60;
-    for (let x = 0; x < mission.mapWidth; x += gridSize) {
+    for (let x = 0; x < mission.mapWidth; x += 60) {
       ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, mission.mapHeight);
       ctx.stroke();
     }
-    for (let y = 0; y < mission.mapHeight; y += gridSize) {
+    for (let y = 0; y < mission.mapHeight; y += 60) {
       ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(mission.mapWidth, y);
       ctx.stroke();
     }
 
-    // Extraction Zone
+    // Surface Puddles in outdoor/skylight zones
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.6)';
+    ctx.beginPath();
+    ctx.ellipse(160, 220, 60, 35, 0.2, 0, Math.PI * 2);
+    ctx.ellipse(820, 780, 45, 25, -0.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 2. EXTRACTION ZONE (HELIPAD MARKINGS)
     const ext = mission.extraction;
     ctx.beginPath();
     ctx.arc(ext.x, ext.y, Math.max(0, ext.radius), 0, Math.PI * 2);
-    ctx.fillStyle = targetAcquired ? 'rgba(34, 211, 238, 0.15)' : 'rgba(255, 255, 255, 0.04)';
+    ctx.fillStyle = targetAcquired ? 'rgba(34, 211, 238, 0.08)' : 'rgba(255, 255, 255, 0.03)';
     ctx.fill();
-    ctx.strokeStyle = targetAcquired ? '#22d3ee' : 'rgba(255, 255, 255, 0.15)';
+    ctx.strokeStyle = targetAcquired ? '#22d3ee' : 'rgba(255, 255, 255, 0.12)';
     ctx.lineWidth = 2;
-    ctx.setLineDash([6, 6]);
     ctx.stroke();
-    ctx.setLineDash([]);
 
-    // Vault Area
+    // Helipad 'H' Marking
+    ctx.fillStyle = targetAcquired ? '#22d3ee' : 'rgba(255, 255, 255, 0.15)';
+    ctx.font = 'bold 24px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('H', ext.x, ext.y);
+
+    // 3. SECURE FLIGHT CASE VAULT
     const v = mission.vault;
-    ctx.fillStyle = targetAcquired ? 'rgba(16, 185, 129, 0.08)' : 'rgba(6, 182, 212, 0.08)';
+    ctx.fillStyle = '#111827';
     ctx.fillRect(v.x, v.y, v.width, v.height);
-    ctx.strokeStyle = targetAcquired ? '#10b981' : '#06b6d4';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = targetAcquired ? '#10b981' : '#38bdf8';
+    ctx.lineWidth = 2;
     ctx.strokeRect(v.x, v.y, v.width, v.height);
 
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '11px "JetBrains Mono", monospace';
-    ctx.fillText('EXECUTIVE VAULT', v.x + 12, v.y + 24);
+    // Flight Case Texture
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(v.x + 12, v.y + 12, v.width - 24, v.height - 24);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '9px "JetBrains Mono", monospace';
+    ctx.fillText('ASSET CONTAINER', v.x + v.width / 2, v.y + v.height / 2);
 
-    // Render Laser Grids
-    lasers.forEach(laser => {
-      if (!laser.isActive || laser.isHacked) return;
-      ctx.beginPath();
-      ctx.moveTo(laser.x1, laser.y1);
-      ctx.lineTo(laser.x2, laser.y2);
-      ctx.strokeStyle = '#f43f5e';
-      ctx.lineWidth = 2.5;
-      ctx.shadowColor = '#f43f5e';
-      ctx.shadowBlur = 10;
-      ctx.stroke();
-      ctx.shadowBlur = 0;
+    // 4. ENVIRONMENTAL OBJECTS (SWITCHES & VENTS)
+    envObjects.forEach(obj => {
+      ctx.fillStyle = obj.isInteracted ? '#334155' : '#0284c7';
+      ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
 
-      // Emitter dots
-      ctx.fillStyle = '#f43f5e';
-      ctx.beginPath();
-      ctx.arc(laser.x1, laser.y1, 4, 0, Math.PI * 2);
-      ctx.arc(laser.x2, laser.y2, 4, 0, Math.PI * 2);
-      ctx.fill();
+      if (isScannerActive) {
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = '9px "JetBrains Mono", monospace';
+        ctx.fillText(`[CIRCUIT] ${obj.name}`, obj.x, obj.y - 8);
+      }
     });
 
-    // Render Terminals
+    // 5. SECURITY TERMINALS
     terminals.forEach(term => {
-      ctx.fillStyle = term.isHacked ? '#10b981' : '#22d3ee';
+      ctx.fillStyle = term.isHacked ? '#10b981' : '#0ea5e9';
+      ctx.fillRect(term.x - 8, term.y - 8, 16, 16);
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(term.x - 8, term.y - 8, 16, 16);
+
+      // Terminal status light
+      ctx.fillStyle = term.isHacked ? '#34d399' : '#38bdf8';
       ctx.beginPath();
-      ctx.arc(term.x, term.y, 10, 0, Math.PI * 2);
+      ctx.arc(term.x, term.y - 12, 2.5, 0, Math.PI * 2);
       ctx.fill();
 
-      // Outer ring
-      ctx.strokeStyle = term.isHacked ? 'rgba(16, 185, 129, 0.4)' : 'rgba(34, 211, 238, 0.5)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(term.x, term.y, 18, 0, Math.PI * 2);
-      ctx.stroke();
-
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '10px "JetBrains Mono", monospace';
-      ctx.fillText(term.isHacked ? 'TERMINAL [BYPASSED]' : 'TERMINAL [ONLINE]', term.x - 45, term.y - 24);
+      if (isScannerActive) {
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = '9px "JetBrains Mono", monospace';
+        ctx.fillText(`[TERMINAL] ${term.name}`, term.x, term.y - 16);
+      }
     });
 
-    // Render Guard Vision Cones (clipping against walls)
+    // 6. REALISTIC PHYSICAL LIGHTING (LIGHT SOURCES)
+    lights.forEach(l => {
+      if (!l.isOn) return;
+      const grad = ctx.createRadialGradient(l.x, l.y, 10, l.x, l.y, l.radius);
+      const baseCol = alarmsActive ? '#ef4444' : (l.color || '#e2e8f0');
+      grad.addColorStop(0, `${baseCol}26`);
+      grad.addColorStop(0.6, `${baseCol}0f`);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(l.x, l.y, l.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Ceiling fixture lamp bulb
+      ctx.fillStyle = alarmsActive ? '#f87171' : '#fef08a';
+      ctx.beginPath();
+      ctx.arc(l.x, l.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // 7. GUARDS FLASHLIGHT BEAMS (REALISTIC LIGHT CONES)
     guards.forEach(g => {
       if (g.state === 'STUNNED') return;
 
@@ -648,26 +918,24 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       }
       ctx.closePath();
 
-      // Color based on alert state
-      let coneFill = 'rgba(6, 182, 212, 0.12)';
-      let coneStroke = 'rgba(6, 182, 212, 0.35)';
-      if (g.alertLevel > 30) {
-        coneFill = 'rgba(245, 158, 11, 0.2)';
-        coneStroke = 'rgba(245, 158, 11, 0.6)';
-      }
+      // Radial gradient for flashlight falloff
+      const grad = ctx.createRadialGradient(g.x, g.y, 10, g.x, g.y, g.sightRadius);
       if (g.state === 'ALERT') {
-        coneFill = 'rgba(239, 68, 68, 0.3)';
-        coneStroke = 'rgba(239, 68, 68, 0.8)';
+        grad.addColorStop(0, 'rgba(239, 68, 68, 0.45)');
+        grad.addColorStop(1, 'rgba(239, 68, 68, 0.05)');
+      } else if (g.alertLevel > 30) {
+        grad.addColorStop(0, 'rgba(245, 158, 11, 0.35)');
+        grad.addColorStop(1, 'rgba(245, 158, 11, 0.05)');
+      } else {
+        grad.addColorStop(0, 'rgba(226, 232, 240, 0.22)');
+        grad.addColorStop(1, 'rgba(226, 232, 240, 0.02)');
       }
 
-      ctx.fillStyle = coneFill;
+      ctx.fillStyle = grad;
       ctx.fill();
-      ctx.strokeStyle = coneStroke;
-      ctx.lineWidth = 1;
-      ctx.stroke();
     });
 
-    // Render Camera Vision Cones
+    // 8. CAMERA SWEEP VOLUMETRIC BEAMS
     cameras.forEach(cam => {
       if (cam.isPowerOff || cam.isLooping) return;
 
@@ -686,135 +954,181 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       }
       ctx.closePath();
 
-      ctx.fillStyle = 'rgba(34, 211, 238, 0.08)';
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.08)';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(34, 211, 238, 0.3)';
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.2)';
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // Camera base fixture
-      ctx.fillStyle = '#38bdf8';
+      // Physical camera chassis
+      ctx.fillStyle = '#475569';
       ctx.beginPath();
       ctx.arc(cam.x, cam.y, 6, 0, Math.PI * 2);
       ctx.fill();
+
+      // Lens LED
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(cam.x, cam.y, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (isScannerActive) {
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = '9px "JetBrains Mono", monospace';
+        ctx.fillText(`[AURORA-7 CAMERA]`, cam.x - 30, cam.y - 12);
+      }
     });
 
-    // Render Walls & Doors
+    // 9. SOLID ARCHITECTURAL WALLS & DOORS
     walls.forEach(w => {
       ctx.beginPath();
       ctx.moveTo(w.x1, w.y1);
       ctx.lineTo(w.x2, w.y2);
 
       if (w.type === 'DOOR') {
-        ctx.strokeStyle = w.isOpen ? 'rgba(34, 211, 238, 0.2)' : '#0ea5e9';
-        ctx.lineWidth = w.isOpen ? 2 : 5;
+        ctx.strokeStyle = w.isOpen ? 'rgba(56, 189, 248, 0.2)' : '#0284c7';
+        ctx.lineWidth = w.isOpen ? 2 : 6;
         ctx.setLineDash(w.isOpen ? [4, 4] : []);
       } else {
+        // Physical textured concrete / steel bulkhead
         ctx.strokeStyle = '#1e293b';
         ctx.lineWidth = 8;
         ctx.setLineDash([]);
       }
       ctx.stroke();
       ctx.setLineDash([]);
+
+      // Metal rim highlights on walls
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
     });
 
-    // Render Noise Waves
+    // 10. NOISE & ACOUSTIC RIPPLES
     noiseWavesRef.current.forEach(wave => {
       if (wave.r <= 0) return;
       ctx.beginPath();
       ctx.arc(wave.x, wave.y, Math.max(0, wave.r), 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(34, 211, 238, ${Math.max(0, wave.opacity)})`;
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = `rgba(56, 189, 248, ${Math.max(0, wave.opacity)})`;
+      ctx.lineWidth = 1.2;
       ctx.stroke();
     });
 
-    // Render Guards
+    // Distraction Decoy Objects
+    distractionDecoysRef.current.forEach(d => {
+      ctx.fillStyle = '#a855f7';
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // 11. GUARDS & VOICE CHATTER BUBBLES
     guards.forEach(g => {
       ctx.save();
       ctx.translate(g.x, g.y);
       ctx.rotate(g.angle);
 
-      // Guard body
-      ctx.fillStyle = g.state === 'STUNNED' ? '#475569' : g.state === 'ALERT' ? '#ef4444' : '#334155';
+      // Guard physical body
+      ctx.fillStyle = g.state === 'STUNNED' ? '#475569' : '#1e293b';
       ctx.beginPath();
-      ctx.arc(0, 0, 14, 0, Math.PI * 2);
+      ctx.arc(0, 0, 13, 0, Math.PI * 2);
       ctx.fill();
 
-      // Armor outline
-      ctx.strokeStyle = g.alertLevel > 40 ? '#f59e0b' : '#64748b';
-      ctx.lineWidth = 2;
+      // Tactical harness
+      ctx.strokeStyle = g.state === 'ALERT' ? '#ef4444' : '#64748b';
+      ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      // Direction visor
-      ctx.fillStyle = g.state === 'ALERT' ? '#f87171' : '#38bdf8';
-      ctx.fillRect(8, -4, 6, 8);
+      // Weapon / flashlight mount
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(6, -3, 8, 6);
 
       ctx.restore();
 
-      // Overhead state mark
-      if (g.state === 'SUSPICIOUS') {
-        ctx.fillStyle = '#f59e0b';
-        ctx.font = 'bold 16px "JetBrains Mono", monospace';
-        ctx.fillText('?', g.x - 4, g.y - 20);
-      } else if (g.state === 'INVESTIGATE' || g.state === 'ALERT') {
-        ctx.fillStyle = '#ef4444';
-        ctx.font = 'bold 16px "JetBrains Mono", monospace';
-        ctx.fillText('!', g.x - 4, g.y - 20);
-      } else if (g.state === 'STUNNED') {
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '11px "JetBrains Mono", monospace';
-        ctx.fillText('ZZZ', g.x - 8, g.y - 20);
+      // Guard Voice Line Speech Bubble
+      if (g.voiceLine) {
+        ctx.save();
+        ctx.font = '10px "JetBrains Mono", monospace';
+        const txt = g.voiceLine.text;
+        const textWidth = ctx.measureText(txt).width;
+        ctx.fillStyle = 'rgba(10, 15, 26, 0.88)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 1;
+        ctx.roundRect(g.x - textWidth / 2 - 8, g.y - 34, textWidth + 16, 20, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#e2e8f0';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(txt, g.x, g.y - 24);
+        ctx.restore();
+      }
+
+      if (isScannerActive) {
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = '9px "JetBrains Mono", monospace';
+        ctx.fillText(`[PERSONNEL: ${g.state}]`, g.x - 30, g.y + 24);
       }
     });
 
-    // Render Player (The Ghost)
+    // 12. PLAYER CHARACTER (THE GHOST)
     ctx.save();
     ctx.translate(playerPos.x, playerPos.y);
     ctx.rotate(playerAngle);
 
     if (isCloaked) {
-      // Cloaked shimmer effect
-      ctx.strokeStyle = 'rgba(34, 211, 238, 0.4)';
-      ctx.lineWidth = 2;
+      // Optical Cloak light refraction
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.arc(0, 0, 13, 0, Math.PI * 2);
+      ctx.arc(0, 0, 12, 0, Math.PI * 2);
       ctx.stroke();
     } else {
-      // Normal Ghost avatar
+      // Infiltrator Technical Suit
       ctx.fillStyle = '#0f172a';
       ctx.beginPath();
-      ctx.arc(0, 0, 13, 0, Math.PI * 2);
+      ctx.arc(0, 0, 12, 0, Math.PI * 2);
       ctx.fill();
 
-      // Luxury cyan edge ring
-      ctx.strokeStyle = isCrouched ? '#0284c7' : '#06b6d4';
-      ctx.lineWidth = 2;
+      // Tactical rim light
+      ctx.strokeStyle = isCrouched ? '#0284c7' : '#38bdf8';
+      ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      // Direction indicator
+      // Tactical visor/goggles
       ctx.fillStyle = '#22d3ee';
-      ctx.fillRect(8, -3, 6, 6);
+      ctx.fillRect(6, -2.5, 5, 5);
     }
-
     ctx.restore();
+
+    // 13. RAIN STREAKS & LIGHTNING FLASH OVERLAY
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.lineWidth = 1;
+    rainDropsRef.current.forEach(drop => {
+      drop.y += drop.v;
+      if (drop.y > mission.mapHeight) {
+        drop.y = -20;
+        drop.x = Math.random() * mission.mapWidth;
+      }
+      ctx.beginPath();
+      ctx.moveTo(drop.x, drop.y);
+      ctx.lineTo(drop.x - 2, drop.y + drop.l);
+      ctx.stroke();
+    });
+
+    // Lightning Flash
+    if (lightningRef.current.alpha > 0) {
+      ctx.fillStyle = `rgba(255, 255, 255, ${lightningRef.current.alpha * 0.3})`;
+      ctx.fillRect(0, 0, mission.mapWidth, mission.mapHeight);
+    }
 
     ctx.restore(); // Restore camera translation
   };
 
-  // Detection signature text & color
-  const signatureLabel = 
-    detectionPercent >= 80 ? 'ALARM ACTIVE' :
-    detectionPercent >= 40 ? 'WARNING' :
-    detectionPercent >= 15 ? 'UNSTABLE' : 'LOW';
-
-  const signatureColor =
-    detectionPercent >= 80 ? 'text-rose-500' :
-    detectionPercent >= 40 ? 'text-amber-400' :
-    detectionPercent >= 15 ? 'text-yellow-300' : 'text-cyan-400';
-
   return (
-    <div className="relative w-screen h-screen bg-[#05070b] overflow-hidden select-none">
-      {/* Fullscreen Canvas */}
+    <div className={`relative w-screen h-screen bg-[#06080e] overflow-hidden select-none font-mono-tech ${isScannerActive ? 'grayscale-[35%]' : ''}`}>
+      {/* Canvas */}
       <canvas
         ref={canvasRef}
         width={window.innerWidth}
@@ -822,139 +1136,131 @@ export const StealthGame: React.FC<StealthGameProps> = ({
         className="w-full h-full block cursor-crosshair"
       />
 
-      {/* Cyberpunk Scanlines & Vignette */}
-      <div className="absolute inset-0 cyber-scanlines opacity-40 pointer-events-none" />
-      <div className="absolute inset-0 cyber-vignette opacity-70 pointer-events-none" />
+      {/* Atmospheric Vignette & Emergency Alarm Sweep */}
+      <div className={`absolute inset-0 pointer-events-none transition-all duration-300 ${
+        alarmsActive ? 'bg-red-950/20 shadow-[inset_0_0_90px_rgba(239,68,68,0.35)]' : 'cyber-vignette opacity-70'
+      }`} />
 
-      {/* TOP LEFT HUD: Ghost Status & Energy */}
-      <div className="absolute top-5 left-5 z-30 font-mono-tech flex flex-col gap-2">
-        <div className="bg-[#090d18]/85 backdrop-blur-md border border-cyan-500/30 rounded-xl p-3.5 shadow-lg min-w-[220px]">
+      {/* MINIMAL DIEGETIC TOP-LEFT HUD */}
+      <div className="absolute top-5 left-5 z-30 flex flex-col gap-2">
+        <div className="bg-[#090d18]/90 backdrop-blur-md border border-white/10 rounded-xl p-3.5 shadow-xl min-w-[210px]">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-display font-bold text-white tracking-wider">THE GHOST</span>
-            <span className="text-[10px] text-cyan-400 uppercase">
-              {isCloaked ? 'CLOAKED' : isCrouched ? 'CROUCH' : 'WALK'}
+            <span className="text-xs font-display font-bold text-white tracking-wide">
+              {mission.isTutorial ? 'GHOST · RECON' : 'THE GHOST'}
+            </span>
+            <span className={`text-[10px] font-bold ${inShadow ? 'text-cyan-400' : 'text-amber-400'}`}>
+              {inShadow ? 'SHADOW · CONCEALED' : 'EXPOSED · LIT'}
             </span>
           </div>
 
-          {/* Energy Bar */}
+          {/* Energy & Scanner Battery */}
           <div className="space-y-1.5">
             <div className="flex justify-between text-[10px] text-slate-400">
-              <span>ENERGY</span>
-              <span className="text-cyan-300 font-bold">{Math.round(energy)}%</span>
+              <span>SCANNER / AUX</span>
+              <span className="text-cyan-300 font-bold">{Math.round(scannerEnergy)}%</span>
             </div>
-            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-cyan-400 rounded-full transition-all duration-150 shadow-[0_0_8px_#22d3ee]"
-                style={{ width: `${energy}%` }}
+                className="h-full bg-cyan-400 rounded-full transition-all duration-150"
+                style={{ width: `${scannerEnergy}%` }}
               />
             </div>
           </div>
 
-          {/* Signature Detection Bar */}
-          <div className="mt-3 space-y-1">
-            <div className="flex justify-between text-[10px]">
-              <span className="text-slate-400">SIGNATURE</span>
-              <span className={`font-bold ${signatureColor}`}>{signatureLabel}</span>
-            </div>
-            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-150 ${
-                  detectionPercent >= 80 ? 'bg-rose-500 shadow-[0_0_10px_#f43f5e]' :
-                  detectionPercent >= 40 ? 'bg-amber-400' : 'bg-cyan-400'
-                }`}
-                style={{ width: `${detectionPercent}%` }}
-              />
-            </div>
+          {/* Detection Risk Indicator */}
+          <div className="mt-2.5 flex items-center justify-between text-[10px]">
+            <span className="text-slate-400">DETECTION RISK</span>
+            <span className={`font-bold ${
+              detectionPercent >= 80 ? 'text-rose-400 animate-pulse' :
+              detectionPercent >= 40 ? 'text-amber-400' : 'text-slate-300'
+            }`}>
+              {detectionPercent >= 80 ? 'ALARM ACTIVE' :
+               detectionPercent >= 40 ? 'SUSPICIOUS' :
+               detectionPercent > 10 ? 'ATTENTION' : 'UNSEEN'}
+            </span>
           </div>
         </div>
 
-        {/* Abort button */}
+        {/* Abort Button */}
         <button
           onClick={onAbort}
-          className="self-start px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 hover:border-slate-600 text-slate-400 hover:text-white text-[11px] font-mono-tech flex items-center gap-1.5 transition-colors"
+          className="self-start px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 hover:border-slate-600 text-slate-400 hover:text-white text-[10px] flex items-center gap-1.5 transition-colors"
         >
-          <ArrowLeft className="w-3.5 h-3.5" /> ABORT CONTRACT
+          <ArrowLeft className="w-3 h-3" /> ABORT MISSION
         </button>
       </div>
 
-      {/* TOP RIGHT HUD: Objective & Map Tracker */}
-      <div className="absolute top-5 right-5 z-30 font-mono-tech">
-        <div className="bg-[#090d18]/85 backdrop-blur-md border border-cyan-500/30 rounded-xl p-3.5 shadow-lg min-w-[240px]">
-          <span className="text-[10px] text-cyan-400 uppercase tracking-widest block mb-1">
-            PRIMARY OBJECTIVE
+      {/* TOP RIGHT MINIMAL OBJECTIVE */}
+      <div className="absolute top-5 right-5 z-30">
+        <div className="bg-[#090d18]/90 backdrop-blur-md border border-white/10 rounded-xl p-3.5 shadow-xl min-w-[220px]">
+          <span className="text-[9px] text-cyan-400 uppercase tracking-widest block mb-0.5">
+            CURRENT DIRECTIVE
           </span>
-          <div className="text-sm font-display font-semibold text-white tracking-wide">
-            {targetAcquired ? 'EXTRACTION REQUIRED' : `REACH ${mission.targetName}`}
+          <div className="text-xs font-display font-semibold text-white">
+            {targetAcquired ? 'EVACUATE TO ROOFTOP AERODYNE' : `SECURE ${mission.targetName}`}
           </div>
-          <div className="text-[11px] text-slate-400 mt-1">
-            {targetAcquired ? 'EVACUATE TO HELIPAD' : 'BYPASS PERIMETER DEFENSES'}
+          <div className="text-[10px] text-slate-400 mt-0.5">
+            {targetAcquired ? 'EXTRACTION ROUTE CLEAR' : 'LEAVE NO TRACE'}
           </div>
         </div>
       </div>
 
-      {/* BOTTOM RIGHT HUD: Controls & Gadget Triggers */}
-      <div className="absolute bottom-5 right-5 z-30 flex items-center gap-2 font-mono-tech">
-        {/* Cloak Key */}
+      {/* TUTORIAL CONTEXTUAL HINT BANNER */}
+      {tutorialHint && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 pointer-events-none animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="px-4 py-2 rounded-lg bg-black/80 border border-cyan-500/40 text-cyan-300 text-xs font-bold tracking-widest shadow-[0_0_25px_rgba(6,182,212,0.25)]">
+            {tutorialHint}
+          </div>
+        </div>
+      )}
+
+      {/* BOTTOM ACTION BAR */}
+      <div className="absolute bottom-5 right-5 z-30 flex items-center gap-2">
+        {/* Scanner Key */}
         <button
-          onClick={activateCloak}
-          disabled={cloakCooldown > 0 || energy < 25}
-          className={`p-3 rounded-xl border backdrop-blur-md flex flex-col items-center gap-1 transition-all ${
-            isCloaked
-              ? 'bg-cyan-500 text-slate-950 border-cyan-300 shadow-[0_0_20px_#22d3ee]'
-              : cloakCooldown > 0
-              ? 'bg-slate-900/60 border-slate-800 text-slate-600 opacity-60'
-              : 'bg-slate-900/80 border-cyan-500/40 text-cyan-300 hover:border-cyan-400'
+          onClick={toggleScanner}
+          className={`px-3 py-2 rounded-xl border backdrop-blur-md flex items-center gap-1.5 transition-all text-xs ${
+            isScannerActive
+              ? 'bg-cyan-500 text-slate-950 border-cyan-400 font-bold shadow-[0_0_20px_rgba(34,211,238,0.4)]'
+              : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:text-white'
           }`}
         >
-          <Eye className="w-4 h-4" />
-          <span className="text-[10px] font-bold">
-            [Q] CLOAK {cloakCooldown > 0 && `(${Math.ceil(cloakCooldown)}s)`}
-          </span>
+          <Scan className="w-3.5 h-3.5" />
+          <span>[Q] SCANNER</span>
         </button>
 
-        {/* EMP Key */}
+        {/* Decoy Throw Key */}
         <button
-          onClick={activateEmp}
-          disabled={empCooldown > 0}
-          className={`p-3 rounded-xl border backdrop-blur-md flex flex-col items-center gap-1 transition-all ${
-            empCooldown > 0
-              ? 'bg-slate-900/60 border-slate-800 text-slate-600 opacity-60'
-              : 'bg-slate-900/80 border-purple-500/40 text-purple-300 hover:border-purple-400'
+          onClick={throwDistractionDecoy}
+          disabled={distractionCooldown > 0}
+          className={`px-3 py-2 rounded-xl border backdrop-blur-md flex items-center gap-1.5 transition-all text-xs ${
+            distractionCooldown > 0
+              ? 'bg-slate-900/40 border-slate-800 text-slate-600 opacity-60'
+              : 'bg-slate-900/80 border-purple-500/30 text-purple-300 hover:border-purple-400'
           }`}
         >
-          <Zap className="w-4 h-4" />
-          <span className="text-[10px] font-bold">
-            [F] EMP {empCooldown > 0 && `(${Math.ceil(empCooldown)}s)`}
-          </span>
+          <Volume2 className="w-3.5 h-3.5" />
+          <span>[F] DECOY {distractionCooldown > 0 && `(${Math.ceil(distractionCooldown)}s)`}</span>
         </button>
 
         {/* Crouch Key */}
         <button
           onClick={() => setIsCrouched(prev => !prev)}
-          className={`p-3 rounded-xl border backdrop-blur-md flex flex-col items-center gap-1 transition-all ${
+          className={`px-3 py-2 rounded-xl border backdrop-blur-md flex items-center gap-1.5 transition-all text-xs ${
             isCrouched
-              ? 'bg-cyan-950 border-cyan-400 text-cyan-300'
-              : 'bg-slate-900/80 border-slate-800 text-slate-400'
+              ? 'bg-cyan-950 border-cyan-500 text-cyan-300 font-bold'
+              : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:text-white'
           }`}
         >
-          <Shield className="w-4 h-4" />
-          <span className="text-[10px] font-bold">[C] CROUCH</span>
-        </button>
-
-        {/* Camera Terminal Key */}
-        <button
-          onClick={() => setShowCameraTerminal(true)}
-          className="p-3 rounded-xl border border-slate-800 bg-slate-900/80 hover:border-cyan-500/40 text-slate-300 hover:text-cyan-300 backdrop-blur-md flex flex-col items-center gap-1 transition-all"
-        >
-          <Radio className="w-4 h-4" />
-          <span className="text-[10px] font-bold">[CAM] FEEDS</span>
+          <Shield className="w-3.5 h-3.5" />
+          <span>[C] CROUCH</span>
         </button>
       </div>
 
-      {/* CENTER INTERACTION PROMPT */}
+      {/* CONTEXTUAL IN-WORLD INTERACTION PROMPT */}
       {nearbyPrompt && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-16 z-30 pointer-events-none">
-          <div className="px-4 py-2 rounded-lg bg-black/80 border border-cyan-400 text-cyan-300 font-mono-tech text-xs tracking-wider shadow-[0_0_20px_rgba(6,182,212,0.3)] animate-pulse">
+          <div className="px-4 py-2 rounded-lg bg-black/85 border border-cyan-400 text-cyan-300 text-xs tracking-wider shadow-lg animate-pulse">
             {nearbyPrompt}
           </div>
         </div>
@@ -963,24 +1269,19 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       {/* TAKEDOWN PROMPT */}
       {takedownGuard && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-12 z-30 pointer-events-none">
-          <div className="px-4 py-2 rounded-lg bg-rose-950/90 border border-rose-500 text-rose-300 font-mono-tech text-xs tracking-wider shadow-[0_0_20px_rgba(244,63,94,0.4)] animate-bounce">
+          <div className="px-4 py-2 rounded-lg bg-rose-950/90 border border-rose-500 text-rose-300 text-xs tracking-wider animate-bounce">
             [SPACE] SILENT TAKEDOWN
           </div>
         </div>
       )}
 
-      {/* ALARM SCREEN DISTORTION */}
-      {alarmsActive && (
-        <div className="absolute inset-0 border-4 border-rose-500/40 pointer-events-none animate-pulse" />
-      )}
-
-      {/* Radio Tactical Dialogue Overlay */}
+      {/* VERA TACTICAL RADIO TRANSMISSION */}
       <RadioDialogue
         dialogue={currentDialogue}
         onDismiss={() => setCurrentDialogue(null)}
       />
 
-      {/* Hacking Modal */}
+      {/* HACKING MODAL */}
       {activeTerminal && (
         <HackModal
           terminal={activeTerminal}
@@ -989,7 +1290,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
         />
       )}
 
-      {/* Camera Terminal Modal */}
+      {/* CAMERA TERMINAL MODAL */}
       {showCameraTerminal && (
         <CameraTerminalModal
           cameras={cameras}
@@ -1006,7 +1307,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
         />
       )}
 
-      {/* Vault Decryption Modal */}
+      {/* VAULT CRACK MODAL */}
       {showVaultCrack && (
         <VaultCrackModal
           targetName={mission.targetName}
