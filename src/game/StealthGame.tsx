@@ -25,7 +25,9 @@ import { HackModal } from '../components/hacking/HackModal';
 import { CameraTerminalModal } from '../components/cameras/CameraTerminalModal';
 import { VaultCrackModal } from '../components/vault/VaultCrackModal';
 import { RadioDialogue, DialogueMessage } from '../components/dialogue/RadioDialogue';
-import { Shield, Eye, Zap, Radio, ArrowLeft, Scan, Volume2, CloudRain, Crosshair } from 'lucide-react';
+import { PauseMenu } from '../components/game/PauseMenu';
+import { FailureScreen } from '../components/game/FailureScreen';
+import { Shield, Eye, Zap, Radio, ArrowLeft, Scan, Volume2, CloudRain, Crosshair, Pause } from 'lucide-react';
 import { ClayKey } from '../components/common/ClayKey';
 import { TactileButton } from '../components/common/TactileButton';
 import { useDevice } from '../hooks/useDevice';
@@ -76,6 +78,38 @@ export const StealthGame: React.FC<StealthGameProps> = ({
   const [guardsNeutralized, setGuardsNeutralized] = useState(0);
   const [systemsHacked, setSystemsHacked] = useState(0);
   const [missionStartTime] = useState(Date.now());
+  const [isPaused, setIsPaused] = useState(false);
+  const [isFailed, setIsFailed] = useState(false);
+  const [isMutedInGame, setIsMutedInGame] = useState(false);
+  const criticalAlarmTimerRef = useRef<number>(0);
+
+  // Restart Mission function
+  const handleRestartMission = useCallback(() => {
+    setPlayerPos({ ...mission.playerStart });
+    setPlayerAngle(0);
+    setIsCrouched(false);
+    setIsSprinting(false);
+    setIsScannerActive(false);
+    setIsCloaked(false);
+    setGuards(JSON.parse(JSON.stringify(mission.guards)));
+    setCameras(JSON.parse(JSON.stringify(mission.cameras)));
+    setLasers(JSON.parse(JSON.stringify(mission.lasers)));
+    setTerminals(JSON.parse(JSON.stringify(mission.terminals)));
+    setWalls(JSON.parse(JSON.stringify(mission.walls)));
+    setLights(JSON.parse(JSON.stringify(mission.lights || [])));
+    setEnvObjects(JSON.parse(JSON.stringify(mission.envObjects || [])));
+    setTargetAcquired(false);
+    setAlarmsActive(false);
+    setDetectionPercent(0);
+    setHighestDetection(0);
+    setGuardsNeutralized(0);
+    setSystemsHacked(0);
+    setIsPaused(false);
+    setIsFailed(false);
+    criticalAlarmTimerRef.current = 0;
+    sound.stopAlarm();
+    sound.stopTension();
+  }, [mission]);
 
   // Tutorial Progression Step
   const [tutorialStep, setTutorialStep] = useState<TutorialStep>(
@@ -167,6 +201,19 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       const key = e.key.toLowerCase();
       keysRef.current[key] = true;
       setPressedKeys(prev => ({ ...prev, [key]: true }));
+
+      if (e.key === 'Escape' || key === 'p') {
+        setIsPaused(prev => {
+          const next = !prev;
+          if (next) {
+            sound.playPause();
+          } else {
+            sound.playResume();
+          }
+          return next;
+        });
+        return;
+      }
 
       if (e.key === 'Shift') {
         setIsSprinting(true);
@@ -524,6 +571,12 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       const dt = Math.max(0.001, Math.min(0.05, isNaN(elapsed) || elapsed < 0 ? 0.016 : elapsed));
       lastTime = currentTime;
 
+      if (isPaused || isFailed) {
+        renderRealisticCanvas();
+        animationFrameId = requestAnimationFrame(loop);
+        return;
+      }
+
       // Camera Shake decay
       if (cameraShakeRef.current > 0) {
         cameraShakeRef.current = Math.max(0, cameraShakeRef.current - 12 * dt);
@@ -759,6 +812,16 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       if ((anyGuardDetected || cameraDetected) && !alarmsActive) {
         setAlarmsActive(true);
         sound.startAlarm();
+      }
+
+      if (overall >= 98) {
+        criticalAlarmTimerRef.current += dt;
+        if (criticalAlarmTimerRef.current > 4.5 && !isFailed) {
+          setIsFailed(true);
+          sound.playSuspicionAlert();
+        }
+      } else {
+        criticalAlarmTimerRef.current = Math.max(0, criticalAlarmTimerRef.current - dt);
       }
 
       // Check context prompts
@@ -1261,16 +1324,31 @@ export const StealthGame: React.FC<StealthGameProps> = ({
           </div>
         </div>
 
-        {/* Abort Button */}
-        <TactileButton
-          variant="glass"
-          size="sm"
-          icon={<ArrowLeft className="w-3 h-3" />}
-          onClick={onAbort}
-          className="self-start text-[10px]"
-        >
-          ABORT MISSION
-        </TactileButton>
+        {/* Actions Row */}
+        <div className="flex items-center gap-2">
+          <TactileButton
+            variant="glass"
+            size="sm"
+            icon={<Pause className="w-3 h-3" />}
+            onClick={() => {
+              sound.playPause();
+              setIsPaused(true);
+            }}
+            className="text-[10px]"
+          >
+            PAUSE
+          </TactileButton>
+
+          <TactileButton
+            variant="glass"
+            size="sm"
+            icon={<ArrowLeft className="w-3 h-3" />}
+            onClick={onAbort}
+            className="text-[10px]"
+          >
+            ABORT
+          </TactileButton>
+        </div>
       </div>
 
       {/* TOP-RIGHT OVERSIZED BRUTALIST SECURITY HUD */}
@@ -1496,6 +1574,36 @@ export const StealthGame: React.FC<StealthGameProps> = ({
           securityLayers={mission.vault.securityLayers}
           onComplete={handleVaultComplete}
           onClose={() => setShowVaultCrack(false)}
+        />
+      )}
+
+      {/* PAUSE MENU MODAL */}
+      {isPaused && (
+        <PauseMenu
+          missionTitle={mission.title}
+          facilityName={mission.facilityName}
+          timeElapsedSeconds={Math.floor((Date.now() - missionStartTime) / 1000)}
+          detectionPercent={highestDetection}
+          isMuted={isMutedInGame}
+          onResume={() => setIsPaused(false)}
+          onRestart={handleRestartMission}
+          onToggleMute={() => {
+            const next = !isMutedInGame;
+            setIsMutedInGame(next);
+            sound.setMuted(next);
+          }}
+          onAbort={onAbort}
+        />
+      )}
+
+      {/* FAILURE SCREEN MODAL */}
+      {isFailed && (
+        <FailureScreen
+          missionTitle={mission.title}
+          facilityName={mission.facilityName}
+          detectionPercent={highestDetection}
+          onRetry={handleRestartMission}
+          onAbort={onAbort}
         />
       )}
     </div>

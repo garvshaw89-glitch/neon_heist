@@ -1,16 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { sound } from '../../game/audio';
-import { Terminal, Shield, Play, RotateCcw, Crosshair, ChevronRight } from 'lucide-react';
+import { Terminal, Shield, Play, RotateCcw, Crosshair, ChevronRight, Award, KeyRound, FileText, Sliders } from 'lucide-react';
 import { TactileButton } from '../common/TactileButton';
+import { ActiveNavTab } from '../navigation/TopBar';
 
 interface OpeningExperienceProps {
   onEnterNetwork: (isNewGame: boolean) => void;
   hasSavedGame: boolean;
+  onNavigateTo?: (tab: ActiveNavTab) => void;
+  onOpenCredits?: () => void;
+  onOpenAchievements?: () => void;
+  onOpenSaves?: () => void;
 }
 
 export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
   onEnterNetwork,
-  hasSavedGame
+  hasSavedGame,
+  onNavigateTo,
+  onOpenCredits,
+  onOpenAchievements,
+  onOpenSaves
 }) => {
   const [phase, setPhase] = useState<number>(0);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -321,6 +330,62 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
                   >
                     ENTER COMMAND NETWORK
                   </TactileButton>
+
+                  {/* Secondary AAA Quick Navigation Shortcuts */}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    {onNavigateTo && (
+                      <button
+                        onClick={() => {
+                          sound.playUiClick();
+                          onEnterNetwork(false);
+                          onNavigateTo('OPERATIONS');
+                        }}
+                        className="p-2.5 rounded-xl bg-black/60 hover:bg-black/90 border border-white/10 hover:border-white/20 text-[11px] font-mono-tech text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer transition-all"
+                      >
+                        <Crosshair className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>OPERATIONS</span>
+                      </button>
+                    )}
+
+                    {onOpenAchievements && (
+                      <button
+                        onClick={() => {
+                          sound.playUiClick();
+                          onOpenAchievements();
+                        }}
+                        className="p-2.5 rounded-xl bg-black/60 hover:bg-black/90 border border-white/10 hover:border-white/20 text-[11px] font-mono-tech text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer transition-all"
+                      >
+                        <Award className="w-3.5 h-3.5 text-amber-400" />
+                        <span>AWARDS</span>
+                      </button>
+                    )}
+
+                    {onOpenSaves && (
+                      <button
+                        onClick={() => {
+                          sound.playUiClick();
+                          onOpenSaves();
+                        }}
+                        className="p-2.5 rounded-xl bg-black/60 hover:bg-black/90 border border-white/10 hover:border-white/20 text-[11px] font-mono-tech text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer transition-all"
+                      >
+                        <KeyRound className="w-3.5 h-3.5 text-purple-400" />
+                        <span>SAVES</span>
+                      </button>
+                    )}
+
+                    {onOpenCredits && (
+                      <button
+                        onClick={() => {
+                          sound.playUiClick();
+                          onOpenCredits();
+                        }}
+                        className="p-2.5 rounded-xl bg-black/60 hover:bg-black/90 border border-white/10 hover:border-white/20 text-[11px] font-mono-tech text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer transition-all"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-slate-400" />
+                        <span>CREDITS</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="pt-4 border-t border-white/5 flex items-center justify-between text-[10px] font-mono-tech text-slate-500">
