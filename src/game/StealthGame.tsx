@@ -13,7 +13,7 @@ import {
   EnvironmentalObject,
   TutorialStep
 } from '../types/game';
-import { sound } from './audio';
+import { sound, SoundtrackMode } from './audio';
 import {
   calculateVisionPolygon,
   resolveWallCollisions,
@@ -81,7 +81,16 @@ export const StealthGame: React.FC<StealthGameProps> = ({
   const [isPaused, setIsPaused] = useState(false);
   const [isFailed, setIsFailed] = useState(false);
   const [isMutedInGame, setIsMutedInGame] = useState(false);
+  const [soundtrackMode, setSoundtrackMode] = useState<SoundtrackMode>('SCOUTING');
   const criticalAlarmTimerRef = useRef<number>(0);
+
+  // Safe wrapped abort stopping audio
+  const handleAbort = useCallback(() => {
+    sound.stopSoundtrack();
+    sound.stopAlarm();
+    sound.stopTension();
+    onAbort();
+  }, [onAbort]);
 
   // Restart Mission function
   const handleRestartMission = useCallback(() => {
@@ -106,10 +115,30 @@ export const StealthGame: React.FC<StealthGameProps> = ({
     setSystemsHacked(0);
     setIsPaused(false);
     setIsFailed(false);
+    setSoundtrackMode('SCOUTING');
     criticalAlarmTimerRef.current = 0;
     sound.stopAlarm();
     sound.stopTension();
+    sound.updateSoundtrack(false, 0);
+    sound.resumeSoundtrack();
   }, [mission]);
+
+  // Dynamic Soundtrack lifecycle: initialize on mount and tear down on unmount
+  useEffect(() => {
+    sound.startSoundtrack();
+    return () => {
+      sound.stopSoundtrack();
+    };
+  }, []);
+
+  // Manage Soundtrack pause state
+  useEffect(() => {
+    if (isPaused || isFailed) {
+      sound.pauseSoundtrack();
+    } else {
+      sound.resumeSoundtrack();
+    }
+  }, [isPaused, isFailed]);
 
   // Tutorial Progression Step
   const [tutorialStep, setTutorialStep] = useState<TutorialStep>(
@@ -543,6 +572,10 @@ export const StealthGame: React.FC<StealthGameProps> = ({
     const noCasualtyBonus = guardsNeutralized === 0 ? 12000 : 0;
     const totalPayout = mission.basePayout + stealthBonus + noCasualtyBonus;
 
+    sound.stopSoundtrack();
+    sound.stopAlarm();
+    sound.stopTension();
+
     onMissionComplete({
       missionId: mission.id,
       missionTitle: mission.title,
@@ -809,6 +842,18 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       setHighestDetection(prev => Math.max(prev, overall));
       sound.setTensionLevel(overall / 100);
 
+      // Dynamic Soundtrack Shift between Low-Tension Scouting and High-Tension Rhythmic Synth-Wave
+      const isSecurityAIAlerted = 
+        updatedGuards.some(g => g.state === 'ALERT' || g.state === 'COMBAT' || g.alertLevel >= 45) ||
+        alarmsActive ||
+        cameraDetected ||
+        anyGuardDetected;
+
+      const tensionIntensity = Math.min(1, Math.max(0, overall / 100));
+      sound.updateSoundtrack(isSecurityAIAlerted, tensionIntensity);
+      const currentMode: SoundtrackMode = isSecurityAIAlerted ? 'ALERTED' : 'SCOUTING';
+      setSoundtrackMode(prev => prev !== currentMode ? currentMode : prev);
+
       if ((anyGuardDetected || cameraDetected) && !alarmsActive) {
         setAlarmsActive(true);
         sound.startAlarm();
@@ -838,6 +883,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       cancelAnimationFrame(animationFrameId);
       sound.stopAlarm();
       sound.stopTension();
+      sound.stopSoundtrack();
     };
   }, [
     playerPos,
@@ -1343,7 +1389,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
             variant="glass"
             size="sm"
             icon={<ArrowLeft className="w-3 h-3" />}
-            onClick={onAbort}
+            onClick={handleAbort}
             className="text-[10px]"
           >
             ABORT
@@ -1385,6 +1431,24 @@ export const StealthGame: React.FC<StealthGameProps> = ({
             <div className="text-xs font-display font-bold text-white mt-0.5">
               {targetAcquired ? 'EVACUATE TO ROOFTOP AERODYNE' : `SECURE ${mission.targetName}`}
             </div>
+          </div>
+
+          {/* Dynamic Soundtrack Telemetry Badge */}
+          <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[9px] font-mono-tech">
+            <span className="text-slate-400 flex items-center gap-1.5">
+              <Volume2 className={`w-3 h-3 ${soundtrackMode === 'ALERTED' ? 'text-rose-400 animate-pulse' : 'text-cyan-400'}`} />
+              <span>SOUNDTRACK</span>
+            </span>
+            <span className={`px-2 py-0.5 rounded font-bold flex items-center gap-1.5 text-[8px] tracking-wider uppercase transition-all duration-300 ${
+              soundtrackMode === 'ALERTED'
+                ? 'text-rose-300 bg-rose-950/80 border border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.35)] animate-pulse'
+                : 'text-cyan-300 bg-cyan-950/60 border border-cyan-500/30 shadow-[0_0_8px_rgba(34,211,238,0.2)]'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                soundtrackMode === 'ALERTED' ? 'bg-rose-400 animate-ping' : 'bg-cyan-400'
+              }`} />
+              {soundtrackMode === 'ALERTED' ? 'ALERT // SYNTH-WAVE' : 'SCOUT // AMBIENT'}
+            </span>
           </div>
         </div>
       </div>
@@ -1592,7 +1656,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
             setIsMutedInGame(next);
             sound.setMuted(next);
           }}
-          onAbort={onAbort}
+          onAbort={handleAbort}
         />
       )}
 
@@ -1603,7 +1667,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
           facilityName={mission.facilityName}
           detectionPercent={highestDetection}
           onRetry={handleRestartMission}
-          onAbort={onAbort}
+          onAbort={handleAbort}
         />
       )}
     </div>

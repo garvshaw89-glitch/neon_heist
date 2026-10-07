@@ -1,3 +1,533 @@
+export type SoundtrackMode = 'SCOUTING' | 'ALERTED';
+
+export interface SoundtrackTelemetry {
+  mode: SoundtrackMode;
+  tension: number;
+  isAlerted: boolean;
+  isPlaying: boolean;
+}
+
+class DynamicSoundtrackEngine {
+  private ctx: AudioContext;
+  private isMuted: boolean = false;
+  private isPaused: boolean = false;
+  private masterVolume: number = 0.7;
+  private isPlaying: boolean = false;
+
+  private mode: SoundtrackMode = 'SCOUTING';
+  private tensionIntensity: number = 0; // 0 to 1
+
+  // Master Soundtrack Bus
+  private masterGain: GainNode | null = null;
+
+  // Layer 1: Low-Tension Ambient Noise (Scouting)
+  private ambientGain: GainNode | null = null;
+  private droneOsc1: OscillatorNode | null = null;
+  private droneOsc2: OscillatorNode | null = null;
+  private droneLfo: OscillatorNode | null = null;
+  private droneLfoGain: GainNode | null = null;
+  private droneFilter: BiquadFilterNode | null = null;
+  private ambientNoiseSource: AudioBufferSourceNode | null = null;
+  private ambientNoiseFilter: BiquadFilterNode | null = null;
+  private ambientNoiseGain: GainNode | null = null;
+  private radarTimer: number | null = null;
+
+  // Layer 2: High-Tension Rhythmic Synth-Wave (Alerted)
+  private synthwaveGain: GainNode | null = null;
+  private schedulerTimer: number | null = null;
+  private nextNoteTime: number = 0;
+  private currentStep: number = 0;
+  private tempo: number = 126; // Cyberpunk synth-wave BPM
+  private noiseBuffer: AudioBuffer | null = null;
+
+  // Synthesizer Frequency Tables
+  private static readonly BASS_FREQS = [
+    73.42, 73.42, 87.31, 73.42, // D2, D2, F2, D2
+    98.00, 73.42, 87.31, 82.41, // G2, D2, F2, E2
+    73.42, 73.42, 65.41, 73.42, // D2, D2, C2, D2
+    58.27, 65.41, 73.42, 55.00  // Bb1, C2, D2, A1
+  ];
+
+  private static readonly ARP_FREQS = [
+    146.83, 174.61, 220.00, 293.66, // D3, F3, A3, D4
+    261.63, 220.00, 174.61, 164.81, // C4, A3, F3, E3
+    146.83, 174.61, 220.00, 329.63, // D3, F3, A3, E4
+    293.66, 261.63, 220.00, 174.61  // D4, C4, A3, F3
+  ];
+
+  constructor(ctx: AudioContext, masterVolume: number = 0.7, isMuted: boolean = false) {
+    this.ctx = ctx;
+    this.masterVolume = masterVolume;
+    this.isMuted = isMuted;
+    this.initNoiseBuffer();
+  }
+
+  private initNoiseBuffer() {
+    try {
+      const bufferSize = Math.floor(this.ctx.sampleRate * 2.0);
+      this.noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = this.noiseBuffer.getChannelData(0);
+      let lastOut = 0.0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        lastOut = (lastOut * 0.94) + (white * 0.06);
+        data[i] = lastOut * 2.8;
+      }
+    } catch {
+      this.noiseBuffer = null;
+    }
+  }
+
+  public start() {
+    if (this.isPlaying) return;
+    this.isPlaying = true;
+    this.isPaused = false;
+
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+
+    const now = this.ctx.currentTime;
+
+    // Master Soundtrack Output Bus
+    this.masterGain = this.ctx.createGain();
+    const effectiveVol = this.isMuted || this.isPaused ? 0.0001 : this.masterVolume;
+    this.masterGain.gain.setValueAtTime(effectiveVol, now);
+    this.masterGain.connect(this.ctx.destination);
+
+    // Setup Low-Tension Ambient Noise Layer
+    this.setupAmbientLayer();
+
+    // Setup High-Tension Rhythmic Synth-Wave Layer
+    this.setupSynthwaveLayer();
+
+    // Initial state balancing
+    this.applyModeGains(true);
+  }
+
+  private setupAmbientLayer() {
+    if (!this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    this.ambientGain = this.ctx.createGain();
+    this.ambientGain.gain.setValueAtTime(0.20, now);
+    this.ambientGain.connect(this.masterGain);
+
+    // Sub-bass drones (sine 55Hz & triangle 82.4Hz)
+    this.droneFilter = this.ctx.createBiquadFilter();
+    this.droneFilter.type = 'lowpass';
+    this.droneFilter.frequency.setValueAtTime(160, now);
+    this.droneFilter.Q.setValueAtTime(2.5, now);
+    this.droneFilter.connect(this.ambientGain);
+
+    // LFO for slow breathing of ambient filter (0.12 Hz)
+    this.droneLfo = this.ctx.createOscillator();
+    this.droneLfo.frequency.setValueAtTime(0.12, now);
+    this.droneLfoGain = this.ctx.createGain();
+    this.droneLfoGain.gain.setValueAtTime(65, now);
+    this.droneLfo.connect(this.droneLfoGain);
+    this.droneLfoGain.connect(this.droneFilter.frequency);
+    this.droneLfo.start(now);
+
+    this.droneOsc1 = this.ctx.createOscillator();
+    this.droneOsc1.type = 'sine';
+    this.droneOsc1.frequency.setValueAtTime(55, now); // A1 sub
+    this.droneOsc1.connect(this.droneFilter);
+    this.droneOsc1.start(now);
+
+    this.droneOsc2 = this.ctx.createOscillator();
+    this.droneOsc2.type = 'triangle';
+    this.droneOsc2.frequency.setValueAtTime(82.41, now); // E2 fifth
+    this.droneOsc2.detune.setValueAtTime(4, now);
+    this.droneOsc2.connect(this.droneFilter);
+    this.droneOsc2.start(now);
+
+    // Looped atmospheric cyber air / ventilation noise
+    if (this.noiseBuffer) {
+      this.ambientNoiseSource = this.ctx.createBufferSource();
+      this.ambientNoiseSource.buffer = this.noiseBuffer;
+      this.ambientNoiseSource.loop = true;
+
+      this.ambientNoiseFilter = this.ctx.createBiquadFilter();
+      this.ambientNoiseFilter.type = 'bandpass';
+      this.ambientNoiseFilter.frequency.setValueAtTime(540, now);
+      this.ambientNoiseFilter.Q.setValueAtTime(1.8, now);
+
+      this.ambientNoiseGain = this.ctx.createGain();
+      this.ambientNoiseGain.gain.setValueAtTime(0.045, now);
+
+      this.ambientNoiseSource.connect(this.ambientNoiseFilter);
+      this.ambientNoiseFilter.connect(this.ambientNoiseGain);
+      this.ambientNoiseGain.connect(this.ambientGain);
+      this.ambientNoiseSource.start(now);
+    }
+
+    // Occasional scouting sonar radar blip (every 7 seconds)
+    this.radarTimer = window.setInterval(() => {
+      if (this.mode === 'SCOUTING' && !this.isPaused && !this.isMuted) {
+        this.triggerScoutingPing();
+      }
+    }, 7000);
+  }
+
+  private triggerScoutingPing() {
+    if (!this.ambientGain || this.ctx.state === 'suspended') return;
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.exponentialRampToValueAtTime(440, now + 0.35);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1200, now);
+
+      gain.gain.setValueAtTime(0.035, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ambientGain);
+
+      osc.start(now);
+      osc.stop(now + 0.5);
+    } catch {
+      // Ignore ping failure
+    }
+  }
+
+  private setupSynthwaveLayer() {
+    if (!this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    this.synthwaveGain = this.ctx.createGain();
+    this.synthwaveGain.gain.setValueAtTime(0.0001, now);
+    this.synthwaveGain.connect(this.masterGain);
+
+    this.currentStep = 0;
+    this.nextNoteTime = this.ctx.currentTime + 0.05;
+
+    this.startScheduler();
+  }
+
+  private startScheduler() {
+    if (this.schedulerTimer !== null) {
+      clearInterval(this.schedulerTimer);
+    }
+
+    this.schedulerTimer = window.setInterval(() => {
+      if (!this.isPlaying || this.isPaused) return;
+
+      const secondsPer16th = 60 / this.tempo / 4;
+      const scheduleHorizon = 0.12;
+
+      while (this.nextNoteTime < this.ctx.currentTime + scheduleHorizon) {
+        this.scheduleStep(this.currentStep, this.nextNoteTime);
+        this.nextNoteTime += secondsPer16th;
+        this.currentStep = (this.currentStep + 1) % 16;
+      }
+    }, 30);
+  }
+
+  private scheduleStep(step: number, time: number) {
+    if (!this.synthwaveGain) return;
+
+    // 1. Rhythmic Synth-Wave Bassline (D minor progression)
+    this.playSynthwaveBass(step, time);
+
+    // 2. Punchy Cyberpunk Percussion
+    this.playSynthwaveDrums(step, time);
+
+    // 3. Cyberpunk Synth Lead / Arpeggiator (increases with tension)
+    if (this.mode === 'ALERTED' || this.tensionIntensity > 0.15) {
+      this.playSynthwaveArp(step, time);
+    }
+  }
+
+  private playSynthwaveBass(step: number, time: number) {
+    if (!this.synthwaveGain) return;
+    try {
+      const osc = this.ctx.createOscillator();
+      const filter = this.ctx.createBiquadFilter();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sawtooth';
+      const freq = DynamicSoundtrackEngine.BASS_FREQS[step];
+      osc.frequency.setValueAtTime(freq, time);
+
+      filter.type = 'lowpass';
+      const baseCutoff = this.mode === 'ALERTED' ? 950 + this.tensionIntensity * 800 : 450;
+      filter.frequency.setValueAtTime(baseCutoff, time);
+      filter.frequency.exponentialRampToValueAtTime(110, time + 0.12);
+      filter.Q.setValueAtTime(4.0, time);
+
+      const bassVol = this.mode === 'ALERTED' ? 0.22 : 0.05;
+      gain.gain.setValueAtTime(bassVol, time);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.13);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.synthwaveGain);
+
+      osc.start(time);
+      osc.stop(time + 0.14);
+    } catch {
+      // Audio error catch
+    }
+  }
+
+  private playSynthwaveDrums(step: number, time: number) {
+    if (!this.synthwaveGain) return;
+
+    try {
+      // Kick: 4-on-the-floor on steps 0, 4, 8, 12 (+ double-kick on 14 if high alert)
+      const isKick = step % 4 === 0 || (this.tensionIntensity > 0.65 && step === 14);
+      if (isKick) {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(160, time);
+        osc.frequency.exponentialRampToValueAtTime(38, time + 0.075);
+
+        gain.gain.setValueAtTime(0.32, time);
+        gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.14);
+
+        osc.connect(gain);
+        gain.connect(this.synthwaveGain);
+
+        osc.start(time);
+        osc.stop(time + 0.15);
+      }
+
+      // Snare / Cyber Clap: steps 4 and 12 (beats 2 and 4)
+      if (step === 4 || step === 12) {
+        if (this.noiseBuffer) {
+          const snareNoise = this.ctx.createBufferSource();
+          snareNoise.buffer = this.noiseBuffer;
+
+          const snareFilter = this.ctx.createBiquadFilter();
+          snareFilter.type = 'bandpass';
+          snareFilter.frequency.setValueAtTime(1800, time);
+          snareFilter.Q.setValueAtTime(2.0, time);
+
+          const snareGain = this.ctx.createGain();
+          snareGain.gain.setValueAtTime(0.24, time);
+          snareGain.gain.exponentialRampToValueAtTime(0.0001, time + 0.14);
+
+          snareNoise.connect(snareFilter);
+          snareFilter.connect(snareGain);
+          snareGain.connect(this.synthwaveGain);
+
+          snareNoise.start(time);
+          snareNoise.stop(time + 0.15);
+        }
+
+        const bodyOsc = this.ctx.createOscillator();
+        const bodyGain = this.ctx.createGain();
+        bodyOsc.type = 'triangle';
+        bodyOsc.frequency.setValueAtTime(210, time);
+        bodyOsc.frequency.exponentialRampToValueAtTime(80, time + 0.05);
+
+        bodyGain.gain.setValueAtTime(0.12, time);
+        bodyGain.gain.exponentialRampToValueAtTime(0.0001, time + 0.06);
+
+        bodyOsc.connect(bodyGain);
+        bodyGain.connect(this.synthwaveGain);
+
+        bodyOsc.start(time);
+        bodyOsc.stop(time + 0.07);
+      }
+
+      // Hi-hat: offbeat 8ths (steps 2, 6, 10, 14) and softer 16ths
+      if (this.noiseBuffer) {
+        const isOffbeat = step % 4 === 2;
+        const hatSource = this.ctx.createBufferSource();
+        hatSource.buffer = this.noiseBuffer;
+
+        const hatFilter = this.ctx.createBiquadFilter();
+        hatFilter.type = 'highpass';
+        hatFilter.frequency.setValueAtTime(7500, time);
+
+        const hatGain = this.ctx.createGain();
+        const hatVol = isOffbeat ? 0.08 : 0.035;
+        hatGain.gain.setValueAtTime(hatVol, time);
+        hatGain.gain.exponentialRampToValueAtTime(0.0001, time + 0.04);
+
+        hatSource.connect(hatFilter);
+        hatFilter.connect(hatGain);
+        hatGain.connect(this.synthwaveGain);
+
+        hatSource.start(time);
+        hatSource.stop(time + 0.05);
+      }
+    } catch {
+      // Audio error catch
+    }
+  }
+
+  private playSynthwaveArp(step: number, time: number) {
+    if (!this.synthwaveGain) return;
+
+    try {
+      const osc = this.ctx.createOscillator();
+      const filter = this.ctx.createBiquadFilter();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sawtooth';
+      const noteFreq = DynamicSoundtrackEngine.ARP_FREQS[step];
+      osc.frequency.setValueAtTime(noteFreq, time);
+
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(2000 + this.tensionIntensity * 1200, time);
+      filter.Q.setValueAtTime(3.0, time);
+
+      const arpVol = 0.06 + this.tensionIntensity * 0.09;
+      gain.gain.setValueAtTime(arpVol, time);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.09);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.synthwaveGain);
+
+      osc.start(time);
+      osc.stop(time + 0.1);
+    } catch {
+      // Audio error catch
+    }
+  }
+
+  public updateState(isAlerted: boolean, tensionIntensity: number) {
+    const nextMode: SoundtrackMode = isAlerted ? 'ALERTED' : 'SCOUTING';
+    const modeChanged = nextMode !== this.mode;
+    this.mode = nextMode;
+    this.tensionIntensity = Math.min(1, Math.max(0, tensionIntensity));
+
+    this.applyModeGains(modeChanged);
+  }
+
+  private applyModeGains(modeChanged: boolean) {
+    if (!this.ambientGain || !this.synthwaveGain || this.ctx.state === 'suspended') return;
+    try {
+      const now = this.ctx.currentTime;
+
+      if (this.mode === 'ALERTED') {
+        // Security AI is Alerted -> Dynamic High-Tension Rhythmic Synth-Wave
+        this.ambientGain.gain.linearRampToValueAtTime(0.03, now + 0.4);
+
+        const targetSynthwaveVol = 0.22 + (this.tensionIntensity * 0.10);
+        this.synthwaveGain.gain.linearRampToValueAtTime(targetSynthwaveVol, now + (modeChanged ? 0.35 : 0.15));
+      } else {
+        // Scouting Mode -> Low-Tension Ambient Noise
+        this.ambientGain.gain.linearRampToValueAtTime(0.20, now + (modeChanged ? 0.8 : 0.15));
+        this.synthwaveGain.gain.linearRampToValueAtTime(0.0001, now + (modeChanged ? 1.4 : 0.2));
+      }
+    } catch {
+      // Audio error catch
+    }
+  }
+
+  public setMasterVolume(vol: number) {
+    this.masterVolume = vol;
+    if (this.masterGain && this.ctx) {
+      const effectiveVol = this.isMuted || this.isPaused ? 0.0001 : this.masterVolume;
+      try {
+        this.masterGain.gain.setValueAtTime(effectiveVol, this.ctx.currentTime);
+      } catch {
+        // Audio error catch
+      }
+    }
+  }
+
+  public setMuted(muted: boolean) {
+    this.isMuted = muted;
+    if (this.masterGain && this.ctx) {
+      const effectiveVol = muted || this.isPaused ? 0.0001 : this.masterVolume;
+      try {
+        this.masterGain.gain.linearRampToValueAtTime(effectiveVol, this.ctx.currentTime + 0.1);
+      } catch {
+        // Audio error catch
+      }
+    }
+  }
+
+  public pause() {
+    this.isPaused = true;
+    if (this.masterGain && this.ctx) {
+      try {
+        this.masterGain.gain.linearRampToValueAtTime(0.0001, this.ctx.currentTime + 0.15);
+      } catch {
+        // Audio error catch
+      }
+    }
+  }
+
+  public resume() {
+    this.isPaused = false;
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+    if (this.masterGain && this.ctx) {
+      const effectiveVol = this.isMuted ? 0.0001 : this.masterVolume;
+      try {
+        this.masterGain.gain.linearRampToValueAtTime(effectiveVol, this.ctx.currentTime + 0.15);
+      } catch {
+        // Audio error catch
+      }
+    }
+  }
+
+  public stop() {
+    this.isPlaying = false;
+    if (this.schedulerTimer !== null) {
+      clearInterval(this.schedulerTimer);
+      this.schedulerTimer = null;
+    }
+    if (this.radarTimer !== null) {
+      clearInterval(this.radarTimer);
+      this.radarTimer = null;
+    }
+
+    try {
+      this.droneOsc1?.stop();
+      this.droneOsc1?.disconnect();
+      this.droneOsc2?.stop();
+      this.droneOsc2?.disconnect();
+      this.droneLfo?.stop();
+      this.droneLfo?.disconnect();
+      this.ambientNoiseSource?.stop();
+      this.ambientNoiseSource?.disconnect();
+      this.masterGain?.disconnect();
+    } catch {
+      // Ignore if already stopped
+    }
+
+    this.droneOsc1 = null;
+    this.droneOsc2 = null;
+    this.droneLfo = null;
+    this.droneLfoGain = null;
+    this.droneFilter = null;
+    this.ambientNoiseSource = null;
+    this.ambientNoiseFilter = null;
+    this.ambientNoiseGain = null;
+    this.ambientGain = null;
+    this.synthwaveGain = null;
+    this.masterGain = null;
+  }
+
+  public getTelemetry(): SoundtrackTelemetry {
+    return {
+      mode: this.mode,
+      tension: Math.round(this.tensionIntensity * 100),
+      isAlerted: this.mode === 'ALERTED',
+      isPlaying: this.isPlaying && !this.isPaused && !this.isMuted
+    };
+  }
+}
+
 class SoundSystem {
   private ctx: AudioContext | null = null;
   private isMuted: boolean = false;
@@ -8,6 +538,7 @@ class SoundSystem {
   private alarmGain: GainNode | null = null;
   private tensionGain: GainNode | null = null;
   private tensionOsc: OscillatorNode | null = null;
+  private soundtrackEngine: DynamicSoundtrackEngine | null = null;
 
   private initContext() {
     if (!this.ctx) {
@@ -27,6 +558,7 @@ class SoundSystem {
     if (this.ambientGain && this.ctx) {
       this.ambientGain.gain.setValueAtTime(0.12 * master, this.ctx.currentTime);
     }
+    this.soundtrackEngine?.setMasterVolume(master);
   }
 
   public setMuted(muted: boolean) {
@@ -35,6 +567,42 @@ class SoundSystem {
       this.stopAlarm();
       this.stopTension();
     }
+    this.soundtrackEngine?.setMuted(muted);
+  }
+
+  // Dynamic Soundtrack Management API
+  public startSoundtrack() {
+    this.initContext();
+    if (!this.ctx) return;
+    if (!this.soundtrackEngine) {
+      this.soundtrackEngine = new DynamicSoundtrackEngine(this.ctx, this.masterVolume, this.isMuted);
+    }
+    this.soundtrackEngine.start();
+  }
+
+  public stopSoundtrack() {
+    this.soundtrackEngine?.stop();
+  }
+
+  public pauseSoundtrack() {
+    this.soundtrackEngine?.pause();
+  }
+
+  public resumeSoundtrack() {
+    this.soundtrackEngine?.resume();
+  }
+
+  public updateSoundtrack(isAlerted: boolean, tensionIntensity: number) {
+    if (!this.soundtrackEngine && !this.isMuted) {
+      this.startSoundtrack();
+    }
+    this.soundtrackEngine?.updateState(isAlerted, tensionIntensity);
+  }
+
+  public getSoundtrackTelemetry(): SoundtrackTelemetry {
+    return this.soundtrackEngine
+      ? this.soundtrackEngine.getTelemetry()
+      : { mode: 'SCOUTING', tension: 0, isAlerted: false, isPlaying: false };
   }
 
   // Soft futuristic UI click
