@@ -1,0 +1,16 @@
+{
+  "name": "NEON HEIST",
+  "short_name": "NEON HEIST",
+  "description": "Steal the impossible. Leave no trace. Luxury cyberpunk stealth game.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#040609",
+  "theme_color": "#040609",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
