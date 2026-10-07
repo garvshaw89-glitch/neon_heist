@@ -1,7 +1,8 @@
 import React from 'react';
 import { Mission } from '../../types/game';
 import { sound } from '../../game/audio';
-import { Shield, Eye, Video, Radio, ArrowRight, X, AlertTriangle } from 'lucide-react';
+import { Shield, Eye, Video, Radio, ArrowRight, X, AlertTriangle, Play, Crosshair } from 'lucide-react';
+import { TactileButton } from '../common/TactileButton';
 
 interface ContractModalProps {
   mission: Mission;
@@ -15,119 +16,144 @@ export const ContractModal: React.FC<ContractModalProps> = ({
   onClose
 }) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
-      <div className="relative w-full max-w-3xl bg-[#080d19] border border-cyan-500/40 rounded-2xl shadow-[0_0_80px_rgba(6,182,212,0.2)] p-6 sm:p-8 overflow-hidden font-mono-tech terminal-glass surface-imperfections">
-        {/* Header */}
-        <div className="flex items-start justify-between border-b border-white/10 pb-4 mb-6">
-          <div>
-            <div className="text-[10px] text-cyan-400 uppercase tracking-widest block mb-1">
-              CONTRACT DOSSIER · {mission.operationCode}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-xl p-4 select-none">
+      <div className="relative w-full max-w-4xl brutal-frame glass-primary rounded-2xl shadow-[0_0_90px_rgba(0,0,0,0.9)] p-6 sm:p-9 overflow-hidden font-mono-tech terminal-glass surface-imperfections animate-in fade-in zoom-in-95 duration-200">
+        
+        {/* Header Band */}
+        <div className="flex items-start justify-between border-b border-white/10 pb-5 mb-6">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="brutal-stamp text-cyan-400 border-cyan-500/30">
+                DOSSIER // {mission.operationCode}
+              </span>
+              <span className="text-xs text-slate-400 tracking-wider">
+                {mission.sectorName}
+              </span>
             </div>
-            <h2 className="text-2xl font-display font-bold text-white tracking-wide">
+            <h2 className="text-3xl sm:text-4xl font-display font-black text-white tracking-tight">
               {mission.facilityName}
             </h2>
-            <div className="text-xs text-slate-400 mt-1">
-              {mission.sectorName}
-            </div>
           </div>
           <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg border border-slate-800 hover:border-slate-600 text-slate-400 hover:text-white transition-colors"
+            onClick={() => {
+              sound.playUiClick();
+              onClose();
+            }}
+            className="p-2 rounded-xl bg-black/60 border border-white/10 hover:border-white/30 text-slate-400 hover:text-white transition-all cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Briefing Text */}
-        <div className="mb-6 p-4 rounded-xl bg-slate-950/60 border border-slate-800">
-          <div className="text-xs text-cyan-400/90 font-bold mb-1">PRIMARY OBJECTIVE</div>
-          <p className="text-sm text-slate-200 leading-relaxed font-sans mb-3">
-            {mission.briefing}
-          </p>
-          <div className="text-[11px] text-slate-400">
-            TARGET: <span className="text-white font-bold">{mission.targetName}</span>
+        {/* Oversized Brutalist Telemetry Blocks */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          <div className="p-4 rounded-xl bg-black/60 border border-white/5">
+            <span className="text-[10px] text-slate-400 uppercase tracking-widest block">SECURITY LEVEL</span>
+            <span className="text-3xl font-display font-extrabold text-amber-400">
+              0{mission.securityRating}
+            </span>
+          </div>
+
+          <div className="p-4 rounded-xl bg-black/60 border border-white/5">
+            <span className="text-[10px] text-slate-400 uppercase tracking-widest block">CONTRACT BOUNTY</span>
+            <span className="text-3xl font-display font-extrabold text-cyan-300">
+              ₡{mission.basePayout.toLocaleString()}
+            </span>
+          </div>
+
+          <div className="p-4 rounded-xl bg-black/60 border border-white/5">
+            <span className="text-[10px] text-slate-400 uppercase tracking-widest block">RISK PROFILE</span>
+            <span className="text-3xl font-display font-extrabold text-rose-400">
+              APEX
+            </span>
+          </div>
+
+          <div className="p-4 rounded-xl bg-black/60 border border-white/5">
+            <span className="text-[10px] text-slate-400 uppercase tracking-widest block">TIME ESTIMATE</span>
+            <span className="text-3xl font-display font-extrabold text-white">
+              04:30
+            </span>
           </div>
         </div>
 
-        {/* Secondary Objectives & Intelligence Split */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {/* Briefing Text Box */}
+        <div className="mb-6 p-5 rounded-xl bg-black/50 border border-white/10 space-y-2">
+          <div className="text-xs text-cyan-400 font-bold tracking-widest uppercase flex items-center gap-2">
+            <Crosshair className="w-4 h-4" />
+            PRIMARY OPERATIONAL DIRECTIVE
+          </div>
+          <p className="text-sm text-slate-200 leading-relaxed font-sans">
+            {mission.briefing}
+          </p>
+          <div className="text-xs text-slate-400 pt-1">
+            TARGET CLASSIFICATION: <strong className="text-white">{mission.targetName}</strong> · EXTRACTION VECTOR: <strong className="text-cyan-300">ROOFTOP AERODYNE</strong>
+          </div>
+        </div>
+
+        {/* Split Intelligence & Gear Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-7">
           {/* Secondary Objectives */}
-          <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
-              SECONDARY OBJECTIVES
+          <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-2">
+            <span className="text-[10px] text-slate-400 uppercase tracking-widest block font-bold">
+              SECONDARY MISSION DIRECTIVES
             </span>
-            <ul className="space-y-1.5 text-xs text-slate-300">
+            <ul className="space-y-2 text-xs text-slate-300 font-sans">
               {mission.secondaryObjectives.map((sec, i) => (
-                <li key={i} className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                <li key={i} className="flex items-center gap-2.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
                   <span>{sec}</span>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Intelligence Ratings */}
-          <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2.5">
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
-              FACILITY INTELLIGENCE
+          {/* Surveillance Rating Breakdown */}
+          <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-2">
+            <span className="text-[10px] text-slate-400 uppercase tracking-widest block font-bold">
+              SURVEILLANCE & PATROL GRID
             </span>
             <div className="grid grid-cols-3 gap-2 text-center text-xs">
-              <div className="p-2 bg-slate-900 rounded-lg border border-slate-800">
-                <span className="text-[10px] text-slate-500 block">GUARDS</span>
-                <span className="font-bold text-white">{mission.intel.guards}</span>
+              <div className="p-2.5 bg-black/60 rounded-lg border border-white/5">
+                <span className="text-[9px] text-slate-500 block">PATROLS</span>
+                <span className="font-bold text-white text-base">{mission.intel.guards}</span>
               </div>
-              <div className="p-2 bg-slate-900 rounded-lg border border-slate-800">
-                <span className="text-[10px] text-slate-500 block">CAMERAS</span>
-                <span className="font-bold text-white">{mission.intel.cameras}</span>
+              <div className="p-2.5 bg-black/60 rounded-lg border border-white/5">
+                <span className="text-[9px] text-slate-500 block">CAMERAS</span>
+                <span className="font-bold text-white text-base">{mission.intel.cameras}</span>
               </div>
-              <div className="p-2 bg-slate-900 rounded-lg border border-slate-800">
-                <span className="text-[10px] text-slate-500 block">DRONES</span>
-                <span className="font-bold text-white">{mission.intel.drones}</span>
+              <div className="p-2.5 bg-black/60 rounded-lg border border-white/5">
+                <span className="text-[9px] text-slate-500 block">DRONES</span>
+                <span className="font-bold text-white text-base">{mission.intel.drones}</span>
               </div>
-            </div>
-            <div className="flex justify-between text-xs pt-1">
-              <span className="text-slate-400">SECURITY RATING:</span>
-              <span className="text-amber-400 font-bold">{mission.securityRating} / 10</span>
             </div>
           </div>
         </div>
 
-        {/* Recommended Gear & Expected Payout */}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-cyan-950/20 border border-cyan-500/20 mb-8">
-          <div>
-            <span className="text-[10px] text-slate-400 uppercase block mb-1">
-              RECOMMENDED EQUIPMENT
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {mission.recommendedEquipment.map((gear, idx) => (
-                <span key={idx} className="text-[11px] px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-cyan-300">
-                  {gear}
-                </span>
-              ))}
-            </div>
-          </div>
+        {/* Action Triggers with Clay Hierarchy */}
+        <div className="flex flex-col sm:flex-row items-center gap-4 pt-2 border-t border-white/10">
+          <TactileButton
+            variant="clay-accent"
+            size="lg"
+            className="w-full sm:flex-1 justify-center"
+            icon={<Play className="w-4 h-4 fill-slate-950" />}
+            onClick={() => {
+              sound.playConfirm();
+              onBeginHeist();
+            }}
+          >
+            START OPERATION
+          </TactileButton>
 
-          <div className="text-right">
-            <span className="text-[10px] text-slate-400 uppercase block mb-0.5">
-              ESTIMATED PAYOUT
-            </span>
-            <span className="text-xl font-display font-bold text-cyan-300">
-              ₡{mission.basePayout.toLocaleString()}
-            </span>
-          </div>
+          <TactileButton
+            variant="glass"
+            size="lg"
+            className="w-full sm:w-auto px-8"
+            onClick={onClose}
+          >
+            DISMISS DOSSIER
+          </TactileButton>
         </div>
 
-        {/* Action Button */}
-        <button
-          onClick={() => {
-            sound.playConfirm();
-            onBeginHeist();
-          }}
-          className="w-full py-4 px-6 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-display font-bold text-sm tracking-widest uppercase transition-all shadow-[0_0_30px_rgba(6,182,212,0.4)] flex items-center justify-center gap-2"
-        >
-          <span>BEGIN HEIST</span>
-          <ArrowRight className="w-4 h-4" />
-        </button>
       </div>
     </div>
   );

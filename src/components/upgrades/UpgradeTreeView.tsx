@@ -3,6 +3,8 @@ import { PlayerState, UpgradeNode } from '../../types/game';
 import { UPGRADE_NODES } from '../../hooks/useGameState';
 import { sound } from '../../game/audio';
 import { Activity, Cpu, Layers, Sparkles, CheckCircle2, ArrowUpRight } from 'lucide-react';
+import { TactileButton } from '../common/TactileButton';
+import { BrutalCard } from '../common/BrutalCard';
 
 interface UpgradeTreeViewProps {
   player: PlayerState;
@@ -12,11 +14,11 @@ interface UpgradeTreeViewProps {
 export const UpgradeTreeView: React.FC<UpgradeTreeViewProps> = ({ player, onUpgradeNode }) => {
   const [activeCategory, setActiveCategory] = useState<'BODY' | 'TECH' | 'EQUIPMENT' | 'INTELLIGENCE'>('BODY');
 
-  const categories: { id: typeof activeCategory; label: string; icon: React.ReactNode }[] = [
-    { id: 'BODY', label: 'Body Augments', icon: <Activity className="w-3.5 h-3.5" /> },
-    { id: 'TECH', label: 'Tech Implants', icon: <Cpu className="w-3.5 h-3.5" /> },
-    { id: 'EQUIPMENT', label: 'Equipment Tuning', icon: <Layers className="w-3.5 h-3.5" /> },
-    { id: 'INTELLIGENCE', label: 'Neural Intelligence', icon: <Sparkles className="w-3.5 h-3.5" /> }
+  const categories: { id: typeof activeCategory; label: string; code: string; icon: React.ReactNode }[] = [
+    { id: 'BODY', label: 'BODY AUGMENTS', code: '01', icon: <Activity className="w-3.5 h-3.5" /> },
+    { id: 'TECH', label: 'TECH IMPLANTS', code: '02', icon: <Cpu className="w-3.5 h-3.5" /> },
+    { id: 'EQUIPMENT', label: 'EQUIPMENT TUNING', code: '03', icon: <Layers className="w-3.5 h-3.5" /> },
+    { id: 'INTELLIGENCE', label: 'NEURAL INTEL', code: '04', icon: <Sparkles className="w-3.5 h-3.5" /> }
   ];
 
   const filteredNodes = UPGRADE_NODES.filter(n => n.category === activeCategory);
@@ -34,19 +36,23 @@ export const UpgradeTreeView: React.FC<UpgradeTreeViewProps> = ({ player, onUpgr
   };
 
   return (
-    <div className="w-full h-[calc(100vh-4rem)] p-6 lg:p-8 flex flex-col justify-between overflow-y-auto font-mono-tech">
+    <div className="w-full h-[calc(100vh-4.5rem)] p-6 lg:p-8 flex flex-col justify-between overflow-y-auto font-mono-tech select-none">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/5">
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div>
-          <span className="text-[10px] text-cyan-400 uppercase tracking-widest block mb-0.5">
-            NEURAL & BIOMETRIC AUGMENTATIONS
-          </span>
-          <h2 className="text-xl font-display font-bold text-white tracking-wide">
-            UPGRADE MATRIX
+          <div className="flex items-center gap-2 mb-1">
+            <span className="brutal-stamp text-cyan-400 border-cyan-500/30">
+              AUGMENTS // MATRIX
+            </span>
+            <span className="text-xs text-slate-400">BIOMETRIC & NEURAL UPGRADE SCHEMATICS</span>
+          </div>
+          <h2 className="text-2xl font-display font-extrabold text-white tracking-wide">
+            AUGMENTATION TREE
           </h2>
         </div>
+
         {/* Category Selector */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-950/80 border border-slate-800 rounded-lg">
+        <div className="flex items-center gap-2 p-1.5 bg-black/60 border border-white/10 rounded-xl">
           {categories.map(cat => (
             <button
               key={cat.id}
@@ -54,12 +60,13 @@ export const UpgradeTreeView: React.FC<UpgradeTreeViewProps> = ({ player, onUpgr
                 sound.playUiClick();
                 setActiveCategory(cat.id);
               }}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+              className={`px-3.5 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-2 cursor-pointer ${
                 activeCategory === cat.id
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#162137] text-cyan-300 border border-cyan-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-white border border-transparent'
               }`}
             >
+              <span className="text-[10px] text-slate-500">{cat.code}</span>
               {cat.icon}
               <span>{cat.label}</span>
             </button>
@@ -68,7 +75,7 @@ export const UpgradeTreeView: React.FC<UpgradeTreeViewProps> = ({ player, onUpgr
       </div>
 
       {/* Main Upgrade Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-auto py-4">
         {filteredNodes.map(node => {
           const currentLevel = player.upgrades[node.id] || 1;
           const isMaxed = currentLevel >= node.maxLevel;
@@ -77,68 +84,65 @@ export const UpgradeTreeView: React.FC<UpgradeTreeViewProps> = ({ player, onUpgr
           return (
             <div
               key={node.id}
-              className="p-6 rounded-2xl border border-white/5 bg-[#090e1c]/60 flex flex-col justify-between space-y-5"
+              className="brutal-frame glass-primary p-7 rounded-2xl terminal-glass surface-imperfections flex flex-col justify-between space-y-6"
             >
-              <div>
-                <div className="flex items-start justify-between mb-3">
-                  <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">
-                    {node.category} PROTOCOL
+              <div className="space-y-4">
+                <div className="flex items-start justify-between">
+                  <span className="brutal-stamp text-[9px] text-cyan-300 border-cyan-500/30">
+                    TIER 0{currentLevel} // 0{node.maxLevel}
                   </span>
-                  <div className="flex items-center gap-1">
+                  {/* Physical Level Blocks */}
+                  <div className="flex items-center gap-1.5">
                     {Array.from({ length: node.maxLevel }).map((_, idx) => (
                       <span
                         key={idx}
-                        className={`w-3 h-1.5 rounded-sm ${
-                          idx < currentLevel ? 'bg-cyan-400 shadow-[0_0_6px_#22d3ee]' : 'bg-slate-800'
+                        className={`w-4 h-2 rounded-xs transition-all ${
+                          idx < currentLevel 
+                            ? 'bg-cyan-400 shadow-[0_0_8px_#22d3ee]' 
+                            : 'bg-black/60 border border-white/10'
                         }`}
                       />
                     ))}
                   </div>
                 </div>
 
-                <h3 className="text-lg font-display font-bold text-white mb-1">
-                  {node.title}
-                </h3>
-                <p className="text-xs text-slate-400 font-sans leading-relaxed mb-4">
-                  {node.description}
-                </p>
+                <div>
+                  <h3 className="text-xl font-display font-black text-white">
+                    {node.title}
+                  </h3>
+                  <p className="text-xs text-slate-400 font-sans leading-relaxed mt-1">
+                    {node.description}
+                  </p>
+                </div>
 
-                <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl text-xs text-cyan-300">
-                  CURRENT EFFECT: <span className="font-bold">{node.statBonus}</span>
+                <div className="p-3.5 bg-black/50 border border-white/10 rounded-xl text-xs text-cyan-300">
+                  <span className="text-slate-400 text-[10px] uppercase block mb-0.5">CURRENT ENHANCEMENT:</span>
+                  <span className="font-bold">{node.statBonus}</span>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
+              <div className="pt-4 border-t border-white/10 flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] text-slate-500 uppercase block">UPGRADE COST</span>
-                  <span className="text-sm font-bold text-white">
-                    {isMaxed ? 'MAX LEVEL' : `₡${node.cost.toLocaleString()}`}
+                  <span className="text-[10px] text-slate-500 uppercase block font-bold">UPGRADE INVESTMENT</span>
+                  <span className="text-lg font-display font-black text-white">
+                    {isMaxed ? 'MAXIMAL LEVEL REACHED' : `₡${node.cost.toLocaleString()}`}
                   </span>
                 </div>
 
-                <button
-                  onClick={() => handleUpgrade(node)}
-                  disabled={isMaxed || !canAfford}
-                  className={`py-2.5 px-5 rounded-xl font-display font-bold text-xs tracking-wider uppercase transition-all flex items-center gap-1.5 ${
-                    isMaxed
-                      ? 'bg-slate-900 text-slate-500 cursor-not-allowed border border-slate-800'
-                      : canAfford
-                      ? 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.3)]'
-                      : 'bg-slate-900 text-slate-600 border border-slate-800 cursor-not-allowed'
-                  }`}
-                >
-                  {isMaxed ? (
-                    <>
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>OPTIMAL</span>
-                    </>
-                  ) : (
-                    <>
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                      <span>ENHANCE</span>
-                    </>
-                  )}
-                </button>
+                {isMaxed ? (
+                  <div className="px-4 py-2 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-bold">
+                    OPTIMIZED
+                  </div>
+                ) : (
+                  <TactileButton
+                    variant={canAfford ? 'clay-accent' : 'clay-primary'}
+                    size="md"
+                    disabled={!canAfford}
+                    onClick={() => handleUpgrade(node)}
+                  >
+                    INSTALL UPGRADE
+                  </TactileButton>
+                )}
               </div>
             </div>
           );
@@ -146,9 +150,9 @@ export const UpgradeTreeView: React.FC<UpgradeTreeViewProps> = ({ player, onUpgr
       </div>
 
       {/* Footer */}
-      <div className="pt-4 border-t border-white/5 text-[11px] text-slate-500 flex justify-between">
-        <span>NEURAL IMPLANT CAPACITY: STABLE</span>
-        <span>SYNAPSE SYNCHRONIZATION: 99.8%</span>
+      <div className="flex items-center justify-between text-[10px] text-slate-500 border-t border-white/10 pt-3">
+        <span>NEURAL INTEGRATION: 100% COMPATIBLE</span>
+        <span>SYNAPSE CALIBRATION OPTIMAL</span>
       </div>
     </div>
   );

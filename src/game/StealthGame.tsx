@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   Mission,
   Point,
@@ -25,7 +25,12 @@ import { HackModal } from '../components/hacking/HackModal';
 import { CameraTerminalModal } from '../components/cameras/CameraTerminalModal';
 import { VaultCrackModal } from '../components/vault/VaultCrackModal';
 import { RadioDialogue, DialogueMessage } from '../components/dialogue/RadioDialogue';
-import { Shield, Eye, Zap, Radio, ArrowLeft, Scan, Volume2, CloudRain } from 'lucide-react';
+import { Shield, Eye, Zap, Radio, ArrowLeft, Scan, Volume2, CloudRain, Crosshair } from 'lucide-react';
+import { ClayKey } from '../components/common/ClayKey';
+import { TactileButton } from '../components/common/TactileButton';
+import { useDevice } from '../hooks/useDevice';
+import { useGamepad } from '../hooks/useGamepad';
+import { TouchControls } from '../components/game/TouchControls';
 
 interface StealthGameProps {
   mission: Mission;
@@ -114,8 +119,31 @@ export const StealthGame: React.FC<StealthGameProps> = ({
   const cameraOffsetRef = useRef<Point>({ x: 0, y: 0 });
   const cameraShakeRef = useRef<number>(0);
 
+  // Device & Cross-Platform Inputs
+  const device = useDevice();
+  const touchMoveRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const touchAimAngleRef = useRef<number | null>(null);
+
+  // Resize canvas dynamically on window/viewport resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (canvasRef.current) {
+        canvasRef.current.width = window.innerWidth;
+        canvasRef.current.height = window.innerHeight;
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
+
   // Input states
   const keysRef = useRef<{ [key: string]: boolean }>({});
+  const [pressedKeys, setPressedKeys] = useState<{ [key: string]: boolean }>({});
   const mousePosRef = useRef<Point>({ x: 0, y: 0 });
   const movedDistanceRef = useRef<number>(0);
 
@@ -138,6 +166,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
       keysRef.current[key] = true;
+      setPressedKeys(prev => ({ ...prev, [key]: true }));
 
       if (e.key === 'Shift') {
         setIsSprinting(true);
@@ -188,6 +217,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
     const handleKeyUp = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
       keysRef.current[key] = false;
+      setPressedKeys(prev => ({ ...prev, [key]: false }));
       if (e.key === 'Shift') {
         setIsSprinting(false);
       }
@@ -358,6 +388,29 @@ export const StealthGame: React.FC<StealthGameProps> = ({
     }
   };
 
+  // Gamepad button trigger handler
+  const handleGamepadButton = useCallback((btn: 'A' | 'B' | 'X' | 'Y' | 'LB' | 'START') => {
+    if (btn === 'A') {
+      if (takedownGuard) {
+        performTakedown(takedownGuard.id);
+      } else {
+        handleInteract();
+      }
+    } else if (btn === 'B') {
+      setIsCrouched(prev => !prev);
+    } else if (btn === 'X') {
+      throwDistractionDecoy();
+    } else if (btn === 'Y') {
+      toggleScanner();
+    } else if (btn === 'LB') {
+      setIsSprinting(prev => !prev);
+    } else if (btn === 'START') {
+      onAbort();
+    }
+  }, [takedownGuard, isScannerActive, scannerEnergy, distractionCooldown, playerPos, envObjects, terminals, targetAcquired]);
+
+  const gamepad = useGamepad(handleGamepadButton);
+
   // Terminal hack complete
   const handleTerminalSuccess = () => {
     if (!activeTerminal) return;
@@ -518,9 +571,23 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       if (distractionCooldown > 0) setDistractionCooldown(prev => Math.max(0, prev - dt));
       setEnergy(prev => Math.min(100, prev + 5 * dt));
 
-      // 1. KINEMATIC PLAYER MOVEMENT
+      // 1. KINEMATIC PLAYER MOVEMENT (Keyboard, Virtual Touch Joystick, Gamepad)
       let moveX = 0;
       let moveY = 0;
+
+      // Touch joystick vector
+      if (touchMoveRef.current.x !== 0 || touchMoveRef.current.y !== 0) {
+        moveX += touchMoveRef.current.x;
+        moveY += touchMoveRef.current.y;
+      }
+
+      // Gamepad Left Thumbstick
+      if (gamepad.connected) {
+        if (Math.abs(gamepad.leftStick.x) > 0.1) moveX += gamepad.leftStick.x;
+        if (Math.abs(gamepad.leftStick.y) > 0.1) moveY += gamepad.leftStick.y;
+      }
+
+      // Keyboard
       if (keysRef.current['w'] || keysRef.current['arrowup']) moveY -= 1;
       if (keysRef.current['s'] || keysRef.current['arrowdown']) moveY += 1;
       if (keysRef.current['a'] || keysRef.current['arrowleft']) moveX -= 1;
@@ -567,9 +634,15 @@ export const StealthGame: React.FC<StealthGameProps> = ({
         }
       }
 
-      // Smooth aim rotation
-      const aimAngle = Math.atan2(mousePosRef.current.y - playerPos.y, mousePosRef.current.x - playerPos.x);
-      setPlayerAngle(aimAngle);
+      // Smooth aim rotation (Touch, Gamepad Right Stick, or Mouse)
+      if (touchAimAngleRef.current !== null) {
+        setPlayerAngle(touchAimAngleRef.current);
+      } else if (gamepad.connected && (Math.abs(gamepad.rightStick.x) > 0.15 || Math.abs(gamepad.rightStick.y) > 0.15)) {
+        setPlayerAngle(Math.atan2(gamepad.rightStick.y, gamepad.rightStick.x));
+      } else {
+        const aimAngle = Math.atan2(mousePosRef.current.y - playerPos.y, mousePosRef.current.x - playerPos.x);
+        setPlayerAngle(aimAngle);
+      }
 
       // Collision against walls
       const resolved = resolveWallCollisions({ x: newX, y: newY }, 15, walls);
@@ -1141,127 +1214,233 @@ export const StealthGame: React.FC<StealthGameProps> = ({
         alarmsActive ? 'bg-red-950/20 shadow-[inset_0_0_90px_rgba(239,68,68,0.35)]' : 'cyber-vignette opacity-70'
       }`} />
 
-      {/* MINIMAL DIEGETIC TOP-LEFT HUD */}
+      {/* DIEGETIC MINIMAL CENTER CROSSHAIR */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none opacity-40">
+        <div className="relative w-6 h-6 flex items-center justify-center">
+          <div className="w-1.5 h-1.5 rounded-full bg-cyan-400/80" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 h-1.5 bg-cyan-400" />
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0.5 h-1.5 bg-cyan-400" />
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 w-1.5 bg-cyan-400" />
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 h-0.5 w-1.5 bg-cyan-400" />
+        </div>
+      </div>
+
+      {/* TOP-LEFT DIEGETIC BRUTALIST GLASS HUD */}
       <div className="absolute top-5 left-5 z-30 flex flex-col gap-2">
-        <div className="bg-[#090d18]/90 backdrop-blur-md border border-white/10 rounded-xl p-3.5 shadow-xl min-w-[210px] terminal-glass surface-imperfections">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-display font-bold text-white tracking-wide">
-              {mission.isTutorial ? 'GHOST · RECON' : 'THE GHOST'}
-            </span>
-            <span className={`text-[10px] font-bold ${inShadow ? 'text-cyan-400' : 'text-amber-400'}`}>
-              {inShadow ? 'SHADOW · CONCEALED' : 'EXPOSED · LIT'}
+        <div className="brutal-frame glass-hud rounded-2xl p-4 shadow-2xl min-w-[230px] terminal-glass surface-imperfections space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="brutal-stamp text-[9px] text-cyan-400 border-cyan-500/30">
+                GHOST // 07
+              </span>
+              <div className="text-sm font-display font-extrabold text-white tracking-wide mt-1">
+                OPERATIVE 07
+              </div>
+            </div>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+              inShadow 
+                ? 'text-cyan-400 bg-cyan-950/60 border border-cyan-500/30' 
+                : 'text-amber-400 bg-amber-950/60 border border-amber-500/30'
+            }`}>
+              {inShadow ? 'CONCEALED' : 'EXPOSED'}
             </span>
           </div>
 
           {/* Energy & Scanner Battery */}
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-[10px] text-slate-400">
+          <div className="space-y-1">
+            <div className="flex justify-between text-[10px] text-slate-400 font-mono-tech">
               <span>SCANNER / AUX</span>
               <span className="text-cyan-300 font-bold">{Math.round(scannerEnergy)}%</span>
             </div>
-            <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-white/5">
               <div
-                className="h-full bg-cyan-400 rounded-full transition-all duration-150"
+                className="h-full bg-cyan-400 rounded-full transition-all duration-150 shadow-[0_0_8px_rgba(34,211,238,0.5)]"
                 style={{ width: `${scannerEnergy}%` }}
               />
             </div>
           </div>
-
-          {/* Detection Risk Indicator */}
-          <div className="mt-2.5 flex items-center justify-between text-[10px]">
-            <span className="text-slate-400">DETECTION RISK</span>
-            <span className={`font-bold ${
-              detectionPercent >= 80 ? 'text-rose-400 animate-pulse' :
-              detectionPercent >= 40 ? 'text-amber-400' : 'text-slate-300'
-            }`}>
-              {detectionPercent >= 80 ? 'ALARM ACTIVE' :
-               detectionPercent >= 40 ? 'SUSPICIOUS' :
-               detectionPercent > 10 ? 'ATTENTION' : 'UNSEEN'}
-            </span>
-          </div>
         </div>
 
         {/* Abort Button */}
-        <button
+        <TactileButton
+          variant="glass"
+          size="sm"
+          icon={<ArrowLeft className="w-3 h-3" />}
           onClick={onAbort}
-          className="self-start px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 hover:border-slate-600 text-slate-400 hover:text-white text-[10px] flex items-center gap-1.5 transition-colors"
+          className="self-start text-[10px]"
         >
-          <ArrowLeft className="w-3 h-3" /> ABORT MISSION
-        </button>
+          ABORT MISSION
+        </TactileButton>
       </div>
 
-      {/* TOP RIGHT MINIMAL OBJECTIVE */}
-      <div className="absolute top-5 right-5 z-30">
-        <div className="bg-[#090d18]/90 backdrop-blur-md border border-white/10 rounded-xl p-3.5 shadow-xl min-w-[220px] terminal-glass surface-imperfections">
-          <span className="text-[9px] text-cyan-400 uppercase tracking-widest block mb-0.5">
-            CURRENT DIRECTIVE
-          </span>
-          <div className="text-xs font-display font-semibold text-white">
-            {targetAcquired ? 'EVACUATE TO ROOFTOP AERODYNE' : `SECURE ${mission.targetName}`}
+      {/* TOP-RIGHT OVERSIZED BRUTALIST SECURITY HUD */}
+      <div className="absolute top-5 right-5 z-30 flex flex-col items-end gap-2">
+        <div className="brutal-frame glass-hud rounded-2xl p-4 shadow-2xl min-w-[240px] terminal-glass surface-imperfections text-right space-y-2">
+          <div className="flex items-center justify-between gap-4">
+            <span className={`brutal-stamp text-[9px] ${
+              detectionPercent >= 80 ? 'text-rose-400 border-rose-500/40 animate-pulse' :
+              detectionPercent >= 40 ? 'text-amber-400 border-amber-500/40' :
+              'text-cyan-400 border-cyan-500/30'
+            }`}>
+              SECURITY GRID
+            </span>
+            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-mono-tech">
+              {detectionPercent >= 80 ? 'ALARM LEVEL' : 'DETECTION'}
+            </span>
           </div>
-          <div className="text-[10px] text-slate-400 mt-0.5">
-            {targetAcquired ? 'EXTRACTION ROUTE CLEAR' : 'LEAVE NO TRACE'}
+
+          {/* Oversized Detection Number */}
+          <div className="flex items-baseline justify-end gap-2">
+            <span className={`text-4xl font-display font-black tracking-tight ${
+              detectionPercent >= 80 ? 'text-rose-500 animate-pulse' :
+              detectionPercent >= 40 ? 'text-amber-400' : 'text-slate-100'
+            }`}>
+              {detectionPercent >= 90 ? 'CRITICAL' : `${Math.round(detectionPercent)}%`}
+            </span>
+          </div>
+
+          {/* Objective Directive */}
+          <div className="pt-2 border-t border-white/10 text-left">
+            <span className="text-[9px] text-cyan-400 uppercase tracking-widest block">
+              DIRECTIVE
+            </span>
+            <div className="text-xs font-display font-bold text-white mt-0.5">
+              {targetAcquired ? 'EVACUATE TO ROOFTOP AERODYNE' : `SECURE ${mission.targetName}`}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* TUTORIAL CONTEXTUAL HINT BANNER */}
-      {tutorialHint && (
+      {/* BOTTOM-LEFT DIEGETIC HEALTH & STAMINA */}
+      <div className="absolute bottom-5 left-5 z-30">
+        <div className="brutal-frame glass-hud rounded-2xl p-4 shadow-2xl min-w-[220px] terminal-glass surface-imperfections space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-400 tracking-wider">HEALTH VITALITY</span>
+            <span className="text-xs font-mono-tech text-cyan-300 font-bold">100%</span>
+          </div>
+
+          {/* Diegetic Block Bar */}
+          <div className="flex gap-1 py-1">
+            {[...Array(10)].map((_, i) => (
+              <div
+                key={i}
+                className="h-2 flex-1 rounded-xs bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.4)]"
+              />
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-white/5">
+            <span>SIGNATURE</span>
+            <span className={`font-bold ${
+              isCrouched ? 'text-emerald-400' : isSprinting ? 'text-rose-400' : 'text-cyan-400'
+            }`}>
+              {isCrouched ? 'SILENT (CROUCH)' : isSprinting ? 'NOISY (SPRINT)' : 'STANDARD'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* TUTORIAL CONTEXTUAL PHYSICAL CLAY KEYS */}
+      {mission.isTutorial && tutorialHint && (
         <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 pointer-events-none animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="px-4 py-2 rounded-lg bg-black/80 border border-cyan-500/40 text-cyan-300 text-xs font-bold tracking-widest shadow-[0_0_25px_rgba(6,182,212,0.25)]">
-            {tutorialHint}
+          <div className="brutal-frame glass-primary px-5 py-3 rounded-2xl flex items-center gap-3 terminal-glass shadow-2xl">
+            <span className="text-xs font-display font-bold text-white tracking-wider">
+              {tutorialHint}
+            </span>
+            {tutorialStep === 'MOVE' && (
+              <div className="flex items-center gap-1.5 ml-2">
+                <ClayKey keyLabel="W" isPressed={!!pressedKeys['w']} size="sm" />
+                <ClayKey keyLabel="A" isPressed={!!pressedKeys['a']} size="sm" />
+                <ClayKey keyLabel="S" isPressed={!!pressedKeys['s']} size="sm" />
+                <ClayKey keyLabel="D" isPressed={!!pressedKeys['d']} size="sm" />
+              </div>
+            )}
+            {tutorialStep === 'CROUCH' && (
+              <div className="flex items-center gap-1.5 ml-2">
+                <ClayKey keyLabel="C" isPressed={!!pressedKeys['c'] || isCrouched} size="sm" />
+                <span className="text-[10px] text-slate-400">OR</span>
+                <ClayKey keyLabel="CTRL" isPressed={!!pressedKeys['control']} size="sm" />
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* BOTTOM ACTION BAR */}
-      <div className="absolute bottom-5 right-5 z-30 flex items-center gap-2">
-        {/* Scanner Key */}
-        <button
-          onClick={toggleScanner}
-          className={`px-3 py-2 rounded-xl border backdrop-blur-md flex items-center gap-1.5 transition-all text-xs ${
-            isScannerActive
-              ? 'bg-cyan-500 text-slate-950 border-cyan-400 font-bold shadow-[0_0_20px_rgba(34,211,238,0.4)]'
-              : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:text-white'
-          }`}
-        >
-          <Scan className="w-3.5 h-3.5" />
-          <span>[Q] SCANNER</span>
-        </button>
+      {/* BOTTOM-RIGHT TACTICAL EQUIPMENT CONTROLS (Desktop & Non-touch) */}
+      {!device.isTouch && device.deviceType === 'desktop' && (
+        <div className="absolute bottom-5 right-5 z-30 flex items-center gap-2.5">
+          {/* Scanner Keycap */}
+          <button
+            onClick={toggleScanner}
+            className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all cursor-pointer ${
+              isScannerActive
+                ? 'bg-gradient-to-b from-cyan-400 to-cyan-500 text-slate-950 border-cyan-300 font-bold shadow-[0_0_20px_rgba(34,211,238,0.5)] translate-y-0.5'
+                : 'bg-[#0a0f1d]/80 hover:bg-[#121a2f] border-white/10 text-slate-200'
+            }`}
+          >
+            <ClayKey keyLabel={device.activeInputMethod === 'GAMEPAD' ? 'Y' : 'Q'} isPressed={!!pressedKeys['q'] || isScannerActive} size="sm" />
+            <span className="text-xs font-mono-tech tracking-wider">SCANNER</span>
+          </button>
 
-        {/* Decoy Throw Key */}
-        <button
-          onClick={throwDistractionDecoy}
-          disabled={distractionCooldown > 0}
-          className={`px-3 py-2 rounded-xl border backdrop-blur-md flex items-center gap-1.5 transition-all text-xs ${
-            distractionCooldown > 0
-              ? 'bg-slate-900/40 border-slate-800 text-slate-600 opacity-60'
-              : 'bg-slate-900/80 border-purple-500/30 text-purple-300 hover:border-purple-400'
-          }`}
-        >
-          <Volume2 className="w-3.5 h-3.5" />
-          <span>[F] DECOY {distractionCooldown > 0 && `(${Math.ceil(distractionCooldown)}s)`}</span>
-        </button>
+          {/* Decoy Keycap */}
+          <button
+            onClick={throwDistractionDecoy}
+            disabled={distractionCooldown > 0}
+            className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all cursor-pointer ${
+              distractionCooldown > 0
+                ? 'bg-black/50 border-white/5 text-slate-600 opacity-60 cursor-not-allowed'
+                : 'bg-[#0a0f1d]/80 hover:bg-[#121a2f] border-white/10 text-purple-300'
+            }`}
+          >
+            <ClayKey keyLabel={device.activeInputMethod === 'GAMEPAD' ? 'X' : 'F'} isPressed={!!pressedKeys['f']} size="sm" />
+            <span className="text-xs font-mono-tech tracking-wider">
+              DECOY {distractionCooldown > 0 && `(${Math.ceil(distractionCooldown)}s)`}
+            </span>
+          </button>
 
-        {/* Crouch Key */}
-        <button
-          onClick={() => setIsCrouched(prev => !prev)}
-          className={`px-3 py-2 rounded-xl border backdrop-blur-md flex items-center gap-1.5 transition-all text-xs ${
-            isCrouched
-              ? 'bg-cyan-950 border-cyan-500 text-cyan-300 font-bold'
-              : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:text-white'
-          }`}
-        >
-          <Shield className="w-3.5 h-3.5" />
-          <span>[C] CROUCH</span>
-        </button>
-      </div>
+          {/* Crouch Keycap */}
+          <button
+            onClick={() => setIsCrouched(prev => !prev)}
+            className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all cursor-pointer ${
+              isCrouched
+                ? 'bg-gradient-to-b from-[#182438] to-[#0f1725] border-cyan-400 text-cyan-300 font-bold translate-y-0.5 shadow-[0_0_15px_rgba(34,211,238,0.25)]'
+                : 'bg-[#0a0f1d]/80 hover:bg-[#121a2f] border-white/10 text-slate-200'
+            }`}
+          >
+            <ClayKey keyLabel={device.activeInputMethod === 'GAMEPAD' ? 'B' : 'C'} isPressed={!!pressedKeys['c'] || isCrouched} size="sm" />
+            <span className="text-xs font-mono-tech tracking-wider">CROUCH</span>
+          </button>
+        </div>
+      )}
+
+      {/* ADAPTIVE VIRTUAL TOUCH CONTROLS FOR TOUCH/MOBILE DEVICES */}
+      {(device.isTouch || device.deviceType !== 'desktop') && (
+        <TouchControls
+          onMove={(vec) => { touchMoveRef.current = vec; }}
+          onAim={(angle) => { touchAimAngleRef.current = angle; }}
+          onInteract={handleInteract}
+          onToggleCrouch={() => setIsCrouched(prev => !prev)}
+          isCrouched={isCrouched}
+          onToggleSprint={(sprinting) => setIsSprinting(sprinting)}
+          isSprinting={isSprinting}
+          onTriggerScanner={toggleScanner}
+          isScannerActive={isScannerActive}
+          onThrowDecoy={throwDistractionDecoy}
+          decoyCooldown={distractionCooldown}
+          onTakedown={() => takedownGuard && performTakedown(takedownGuard.id)}
+          hasTakedownPrompt={!!takedownGuard}
+          hasNearbyPrompt={!!nearbyPrompt}
+        />
+      )}
 
       {/* CONTEXTUAL IN-WORLD INTERACTION PROMPT */}
       {nearbyPrompt && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-16 z-30 pointer-events-none">
-          <div className="px-4 py-2 rounded-lg bg-black/85 border border-cyan-400 text-cyan-300 text-xs tracking-wider shadow-lg animate-pulse">
-            {nearbyPrompt}
+          <div className="brutal-frame glass-primary px-4 py-2.5 rounded-xl flex items-center gap-2.5 border-cyan-400 shadow-xl animate-pulse">
+            <ClayKey keyLabel={device.activeInputMethod === 'GAMEPAD' ? 'A' : device.activeInputMethod === 'TOUCH' ? 'TAP' : 'E'} size="sm" />
+            <span className="text-xs font-bold text-cyan-300 tracking-wider">
+              {nearbyPrompt}
+            </span>
           </div>
         </div>
       )}
@@ -1269,8 +1448,11 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       {/* TAKEDOWN PROMPT */}
       {takedownGuard && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-12 z-30 pointer-events-none">
-          <div className="px-4 py-2 rounded-lg bg-rose-950/90 border border-rose-500 text-rose-300 text-xs tracking-wider animate-bounce">
-            [SPACE] SILENT TAKEDOWN
+          <div className="brutal-frame-danger glass-primary px-5 py-2.5 rounded-xl flex items-center gap-2.5 border-rose-500 shadow-xl animate-bounce">
+            <ClayKey keyLabel={device.activeInputMethod === 'GAMEPAD' ? 'A' : device.activeInputMethod === 'TOUCH' ? 'TAP' : 'SPACE'} size="sm" />
+            <span className="text-xs font-bold text-rose-300 tracking-wider">
+              SILENT TAKEDOWN
+            </span>
           </div>
         </div>
       )}

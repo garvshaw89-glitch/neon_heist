@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { sound } from '../../game/audio';
 import { Database, FileText, Building2, Users, ShieldAlert, Cpu } from 'lucide-react';
+import { BrutalCard } from '../common/BrutalCard';
 
 interface ArchiveEntry {
   id: string;
@@ -74,18 +75,23 @@ export const ArchiveView: React.FC = () => {
   };
 
   return (
-    <div className="w-full h-[calc(100vh-4rem)] p-6 lg:p-8 flex flex-col justify-between overflow-y-auto font-mono-tech">
+    <div className="w-full h-[calc(100vh-4.5rem)] p-6 lg:p-8 flex flex-col justify-between overflow-y-auto font-mono-tech select-none">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/5">
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div>
-          <span className="text-[10px] text-cyan-400 uppercase tracking-widest block mb-0.5">
-            CLASSIFIED INTELLIGENCE DATABASE
-          </span>
-          <h2 className="text-xl font-display font-bold text-white tracking-wide">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="brutal-stamp text-cyan-400 border-cyan-500/30">
+              INTELLIGENCE // DATABASE
+            </span>
+            <span className="text-xs text-slate-400">CORP LORE & OPERATIVE ARCHIVES</span>
+          </div>
+          <h2 className="text-2xl font-display font-extrabold text-white tracking-wide">
             ARCHIVE REPOSITORY
           </h2>
         </div>
-        <div className="flex items-center gap-2 text-xs">
+
+        {/* Filter Pills */}
+        <div className="flex flex-wrap items-center gap-2 p-1.5 bg-black/60 border border-white/10 rounded-xl">
           {['ALL', 'CORPORATIONS', 'LORE', 'CHARACTERS', 'TECH'].map(cat => (
             <button
               key={cat}
@@ -93,10 +99,10 @@ export const ArchiveView: React.FC = () => {
                 sound.playUiClick();
                 setActiveCategory(cat);
               }}
-              className={`px-3 py-1.5 rounded-lg border transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeCategory === cat
-                  ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
-                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                  ? 'bg-[#162137] text-cyan-300 border border-cyan-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-white border border-transparent'
               }`}
             >
               {cat}
@@ -105,63 +111,81 @@ export const ArchiveView: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid: Entry List & Detailed Document Reader */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 my-auto items-center">
-        {/* Left 5 Cols: Entry list */}
-        <div className="lg:col-span-5 space-y-3">
-          {filtered.map(entry => {
+      {/* Grid: Entry List and Dossier Reader */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 my-auto items-center py-4">
+        
+        {/* Left 6 Columns: File List */}
+        <div className="lg:col-span-6 space-y-3">
+          {filtered.map((entry, idx) => {
             const isSelected = selectedEntry.id === entry.id;
+
             return (
               <div
                 key={entry.id}
                 onClick={() => handleSelect(entry)}
-                className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                className={`p-4.5 rounded-2xl brutal-frame cursor-pointer transition-all ${
                   isSelected
-                    ? 'bg-cyan-950/40 border-cyan-500/60 shadow-[0_0_20px_rgba(34,211,238,0.15)]'
-                    : 'bg-[#090e1c]/50 border-white/5 hover:border-slate-700'
+                    ? 'bg-gradient-to-b from-[#182337] to-[#0f1725] border-2 border-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.25)]'
+                    : 'bg-[#090e1c]/70 hover:bg-[#111728]/80 border border-white/10'
                 }`}
               >
-                <div className="flex items-center justify-between text-[10px] text-cyan-400 mb-1">
-                  <span>{entry.category}</span>
-                  <span className="text-slate-500">{entry.clearance}</span>
+                <div className="flex items-start justify-between mb-2">
+                  <span className="brutal-stamp text-[9px] text-cyan-300 border-cyan-500/20">
+                    0{idx + 1} // {entry.category}
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase">
+                    {entry.clearance}
+                  </span>
                 </div>
-                <h4 className="text-sm font-display font-bold text-white">
+
+                <h3 className="text-sm font-display font-bold text-white mb-1">
                   {entry.title}
-                </h4>
-                <div className="text-[11px] text-slate-400 mt-1">
-                  SOURCE: {entry.source}
+                </h3>
+                <div className="text-[10px] text-slate-400">
+                  SOURCE: {entry.source} · {entry.date}
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Right 7 Cols: Classified Document Reader */}
-        <div className="lg:col-span-7 p-8 rounded-2xl border border-white/5 bg-[#090e1c]/60 space-y-6">
-          <div className="border-b border-white/5 pb-4">
-            <div className="flex items-center justify-between text-[10px] text-slate-400 mb-2">
-              <span>DOCUMENT SOURCE: {selectedEntry.source}</span>
-              <span className="text-amber-400 font-bold">{selectedEntry.clearance}</span>
+        {/* Right 6 Columns: Dossier Reader */}
+        <div className="lg:col-span-6 brutal-frame glass-primary p-7 rounded-2xl terminal-glass surface-imperfections space-y-6">
+          <div className="border-b border-white/10 pb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="brutal-stamp text-cyan-400 border-cyan-500/30">
+                DECRYPTED // {selectedEntry.clearance}
+              </span>
+              <span className="text-xs text-slate-400">
+                DATE: {selectedEntry.date}
+              </span>
             </div>
-            <h3 className="text-xl font-display font-bold text-white">
+            <h3 className="text-2xl font-display font-black text-white tracking-tight">
               {selectedEntry.title}
             </h3>
+            <p className="text-xs text-slate-400 mt-1">
+              SOURCE IDENTIFIER: {selectedEntry.source}
+            </p>
           </div>
 
-          <p className="text-sm text-slate-300 font-sans leading-relaxed p-6 bg-slate-950/50 border border-slate-800 rounded-xl">
-            {selectedEntry.content}
-          </p>
+          <div className="p-5 bg-black/50 border border-white/10 rounded-xl">
+            <p className="text-sm text-slate-200 font-sans leading-relaxed">
+              {selectedEntry.content}
+            </p>
+          </div>
 
-          <div className="p-4 bg-cyan-950/20 border border-cyan-500/20 rounded-xl text-xs text-cyan-300/80">
-            [INTERCEPT SUMMARY]: Further surveillance required to decrypt the full GhostNet conspiracy.
+          <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-white/5">
+            <span>TRANSMISSION: DECLASSIFIED UNDER GHOST PROTOCOL</span>
+            <span className="text-cyan-400">CIPHER: UNLOCKED</span>
           </div>
         </div>
+
       </div>
 
       {/* Footer */}
-      <div className="pt-4 border-t border-white/5 text-[11px] text-slate-500 flex justify-between">
-        <span>ENCRYPTED MEMORY CORE: 5/5 ENTRIES SYNCHRONIZED</span>
-        <span>SECURITY LOCKOUT: BYPASSED</span>
+      <div className="flex items-center justify-between text-[10px] text-slate-500 border-t border-white/10 pt-3">
+        <span>ARCHIVE CLEARANCE: LEVEL 05 UNRESTRICTED</span>
+        <span>AUTONOMOUS HISTORICAL RECORD</span>
       </div>
     </div>
   );

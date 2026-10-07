@@ -11,8 +11,13 @@ import {
   Sliders,
   ChevronRight,
   Shield,
-  Radio
+  Radio,
+  Terminal,
+  Activity,
+  ArrowUpRight
 } from 'lucide-react';
+import { TactileButton } from '../common/TactileButton';
+import { BrutalCard } from '../common/BrutalCard';
 
 interface MainDashboardProps {
   player: PlayerState;
@@ -40,73 +45,68 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     let width = (canvas.width = canvas.parentElement?.clientWidth || window.innerWidth);
     let height = (canvas.height = canvas.parentElement?.clientHeight || window.innerHeight);
 
-    // Rain particles
+    // Rain streaks
     const rainDrops: { x: number; y: number; l: number; v: number }[] = [];
-    for (let i = 0; i < 140; i++) {
+    for (let i = 0; i < 120; i++) {
       rainDrops.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        l: Math.random() * 22 + 12,
-        v: Math.random() * 12 + 16
+        l: Math.random() * 22 + 10,
+        v: Math.random() * 11 + 14
       });
     }
 
-    // Traffic light streaks (Hovercrafts)
-    const traffic: { x: number; y: number; speed: number; color: string; len: number }[] = [
-      { x: -50, y: height * 0.42, speed: 2.5, color: '#38bdf8', len: 70 },
-      { x: width + 50, y: height * 0.54, speed: -2.1, color: '#fb7185', len: 55 },
-      { x: -80, y: height * 0.68, speed: 3.2, color: '#f59e0b', len: 65 }
+    // Heavy Hovercraft traffic
+    const traffic: { x: number; y: number; speed: number; color: string }[] = [
+      { x: -50, y: height * 0.38, speed: 2.2, color: '#38bdf8' },
+      { x: width + 50, y: height * 0.52, speed: -1.8, color: '#a855f7' },
+      { x: -80, y: height * 0.65, speed: 3.1, color: '#f59e0b' }
     ];
 
-    // Background Skyscraper Silhouettes
+    // Monolithic Brutalist Towers
     const towers: { x: number; w: number; h: number; windows: { x: number; y: number; lit: boolean }[] }[] = [];
     let curX = 0;
     while (curX < width + 100) {
-      const bW = Math.random() * 110 + 80;
+      const bW = Math.random() * 110 + 75;
       const bH = Math.random() * (height * 0.65) + height * 0.35;
       const bWindows: { x: number; y: number; lit: boolean }[] = [];
-      for (let wy = height - bH + 30; wy < height - 60; wy += 26) {
+      for (let wy = height - bH + 28; wy < height - 50; wy += 28) {
         for (let wx = curX + 16; wx < curX + bW - 16; wx += 22) {
           bWindows.push({ x: wx, y: wy, lit: Math.random() > 0.45 });
         }
       }
       towers.push({ x: curX, w: bW, h: bH, windows: bWindows });
-      curX += bW + 18;
+      curX += bW + 20;
     }
 
     const render = () => {
-      ctx.fillStyle = '#06080e';
+      ctx.fillStyle = '#040609';
       ctx.fillRect(0, 0, width, height);
 
-      // Atmospheric gradient haze
+      // Deep atmospheric haze
       const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
-      skyGrad.addColorStop(0, '#04060a');
+      skyGrad.addColorStop(0, '#020407');
       skyGrad.addColorStop(0.7, '#070b14');
-      skyGrad.addColorStop(1, '#0c1220');
+      skyGrad.addColorStop(1, '#0c1322');
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, width, height);
 
-      // Distant Tower Silhouettes
+      // Monolithic towers
       towers.forEach(t => {
-        ctx.fillStyle = '#0b101c';
+        ctx.fillStyle = '#080d1a';
         ctx.fillRect(t.x, height - t.h, t.w, t.h);
 
-        // Windows
         t.windows.forEach(w => {
-          ctx.fillStyle = w.lit ? 'rgba(56, 189, 248, 0.12)' : 'rgba(255, 255, 255, 0.015)';
-          ctx.fillRect(w.x, w.y, 9, 13);
+          ctx.fillStyle = w.lit ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.012)';
+          ctx.fillRect(w.x, w.y, 8, 14);
         });
 
-        // Rooftop aviation beacon
+        // Beacon
         ctx.fillStyle = '#f43f5e';
         ctx.beginPath();
-        ctx.arc(t.x + t.w / 2, height - t.h - 4, 2, 0, Math.PI * 2);
+        ctx.arc(t.x + t.w / 2, height - t.h - 3, 2, 0, Math.PI * 2);
         ctx.fill();
       });
-
-      // Distant corporate sign glow
-      ctx.fillStyle = 'rgba(56, 189, 248, 0.03)';
-      ctx.fillRect(width * 0.45, height * 0.35, 200, 80);
 
       // Hovercraft Traffic Light Trails
       traffic.forEach(v => {
@@ -116,14 +116,17 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
         ctx.strokeStyle = v.color;
         ctx.lineWidth = 2;
+        ctx.shadowColor = v.color;
+        ctx.shadowBlur = 8;
         ctx.beginPath();
         ctx.moveTo(v.x, v.y);
         ctx.lineTo(v.x - v.speed * 8, v.y);
         ctx.stroke();
+        ctx.shadowBlur = 0;
       });
 
       // Rain animation
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
       ctx.lineWidth = 1;
       rainDrops.forEach(drop => {
         drop.y += drop.v;
@@ -144,125 +147,198 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     return () => cancelAnimationFrame(animId);
   }, []);
 
-  const menuOptions = [
+  const menuModules = [
     {
-      label: 'CONTINUE CONTRACT',
-      desc: 'Resume active infiltration sequence',
-      action: () => onSelectOperation(),
-      icon: <Play className="w-4 h-4" />
-    },
-    {
-      label: 'OPERATION ZERO',
-      desc: 'Play stealth tutorial simulation',
-      action: () => onPlayTutorial(),
-      icon: <Radio className="w-4 h-4" />
-    },
-    {
-      label: 'OPERATIONS',
-      desc: 'Select megacity corporate targets',
+      code: '01',
+      title: 'OPERATIONS',
+      subtitle: 'SELECT CLASSIFIED TARGETS',
+      desc: 'Active contracts across 4 corporate megacity sectors.',
       action: () => onNavigate('OPERATIONS'),
-      icon: <Crosshair className="w-4 h-4" />
+      icon: <Crosshair className="w-4 h-4 text-cyan-400" />
     },
     {
-      label: 'LOADOUT ARSENAL',
-      desc: 'Configure tactical infiltration gear',
+      code: '02',
+      title: 'LOADOUT ARSENAL',
+      subtitle: 'TACTICAL GEAR DEPLOYMENT',
+      desc: 'Equip cloaks, EMP devices, and signal scramblers.',
       action: () => onNavigate('LOADOUT'),
-      icon: <Layers className="w-4 h-4" />
+      icon: <Layers className="w-4 h-4 text-purple-400" />
     },
     {
-      label: 'INTELLIGENCE DOSSIER',
-      desc: 'Operative profile & performance data',
-      action: () => onNavigate('PROFILE'),
-      icon: <Cpu className="w-4 h-4" />
-    },
-    {
-      label: 'BLACK MARKET',
-      desc: 'Procure classified hardware & software',
+      code: '03',
+      title: 'BLACK MARKET',
+      subtitle: 'ILLICIT HARDWARE PROCUREMENT',
+      desc: 'Acquire restricted military hardware & stealth software.',
       action: () => onNavigate('MARKET'),
-      icon: <ShoppingBag className="w-4 h-4" />
+      icon: <ShoppingBag className="w-4 h-4 text-amber-400" />
     },
     {
-      label: 'CALIBRATION',
-      desc: 'Audio, display & keybinding preferences',
-      action: () => onNavigate('SETTINGS'),
-      icon: <Sliders className="w-4 h-4" />
+      code: '04',
+      title: 'AUGMENTATIONS',
+      subtitle: 'CYBERNETIC TREE UPGRADES',
+      desc: 'Enhance neural processing, stamina, and cloak duration.',
+      action: () => onNavigate('UPGRADES'),
+      icon: <Cpu className="w-4 h-4 text-emerald-400" />
     }
   ];
 
   return (
-    <div className="relative w-full h-[calc(100vh-4rem)] overflow-hidden select-none font-mono-tech">
+    <div className="relative w-full h-[calc(100vh-4.5rem)] overflow-hidden select-none font-mono-tech">
       {/* Live Atmospheric Canvas Backdrop */}
-      <canvas ref={cityCanvasRef} className="absolute inset-0 w-full h-full block z-0" />
+      <canvas ref={cityCanvasRef} className="absolute inset-0 w-full h-full block z-0 opacity-70" />
 
-      {/* Cyber Vignette & Subtle Fog */}
+      {/* Cyber Vignette & Scanlines */}
       <div className="absolute inset-0 cyber-vignette opacity-85 z-10 pointer-events-none" />
+      <div className="absolute inset-0 cyber-scanlines opacity-40 z-10 pointer-events-none" />
 
-      {/* Foreground Minimal Commercial Game Menu */}
-      <div className="relative z-20 w-full h-full p-8 lg:p-12 flex flex-col justify-between">
-        {/* Top Operative Status Summary */}
-        <div className="flex items-center justify-between text-xs text-slate-400">
+      {/* Foreground Asymmetric Brutalist × Glass Layout */}
+      <div className="relative z-20 w-full h-full p-6 md:p-8 flex flex-col justify-between overflow-y-auto">
+        
+        {/* Top Status HUD Band */}
+        <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-            <span className="text-white font-bold">{player.codename}</span>
-            <span className="text-slate-600">·</span>
-            <span>RANK {player.reputationLevel}</span>
+            <span className="brutal-stamp text-cyan-300 border-cyan-500/30">
+              SYS // ACTIVE
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+              <span className="font-display font-bold text-white text-sm">
+                OPERATIVE: {player.codename}
+              </span>
+              <span className="text-slate-500">·</span>
+              <span className="text-xs text-slate-400">RANK {player.reputationLevel}</span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <span>BALANCE: <strong className="text-cyan-300">₡{player.credits.toLocaleString()}</strong></span>
-            <span>DETECTION: <strong className="text-emerald-400">{player.stats.detectionPercentage}%</strong></span>
+          <div className="flex items-center gap-6 text-xs">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/50 border border-white/10">
+              <span className="text-slate-400">CREDITS</span>
+              <span className="font-bold text-cyan-300">₡{player.credits.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/50 border border-white/10">
+              <span className="text-slate-400">STEALTH INDEX</span>
+              <span className="font-bold text-emerald-400">{100 - player.stats.detectionPercentage}% GHOST</span>
+            </div>
           </div>
         </div>
 
-        {/* Center-Left AAA Game Navigation Menu */}
-        <div className="max-w-md my-auto space-y-3">
-          <div className="mb-6">
-            <span className="text-[10px] text-cyan-400 uppercase tracking-widest block mb-1">
-              SINGLE-PLAYER STEALTH SIMULATION
-            </span>
-            <h1 className="text-4xl sm:text-5xl font-display font-extrabold text-white tracking-wider">
-              NEON HEIST
-            </h1>
-            <p className="text-xs text-slate-400 tracking-wider mt-1">
-              STEAL THE IMPOSSIBLE. LEAVE NO TRACE.
-            </p>
+        {/* Center Grid: Asymmetric Architectural Modules */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 my-auto py-6">
+          
+          {/* Left Hero Card: Active Dispatch Dossier */}
+          <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
+            <div className="brutal-frame glass-primary p-7 rounded-2xl terminal-glass surface-imperfections space-y-5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="font-mono-tech text-[10px] text-cyan-400 uppercase tracking-widest block mb-1">
+                    PRIMARY DIRECTIVE // OP-01
+                  </span>
+                  <h2 className="text-3xl font-display font-black text-white tracking-tight">
+                    SILENT ENTRY
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    AURELION FINANCIAL TOWER · SECTOR 01
+                  </p>
+                </div>
+                <span className="brutal-stamp text-amber-300 border-amber-500/30">
+                  CLASSIFIED
+                </span>
+              </div>
+
+              {/* Oversized Numerical Telemetry */}
+              <div className="grid grid-cols-3 gap-3 p-4 rounded-xl bg-black/50 border border-white/5">
+                <div>
+                  <span className="text-[9px] text-slate-500 block uppercase">SECURITY</span>
+                  <span className="text-xl font-display font-extrabold text-amber-400">LVL 03</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-slate-500 block uppercase">REWARD</span>
+                  <span className="text-xl font-display font-extrabold text-cyan-300">₡12,500</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-slate-500 block uppercase">RISK</span>
+                  <span className="text-xl font-display font-extrabold text-rose-400">HIGH</span>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-300 leading-relaxed font-sans">
+                Infiltrate the high-security core of Aurelion Dynamics. Bypass the laser perimeter, loop security cameras, and extract the quantum encryption cipher.
+              </p>
+
+              {/* Tactile Clay Action Triggers */}
+              <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                <TactileButton
+                  variant="clay-accent"
+                  size="md"
+                  className="flex-1"
+                  icon={<Play className="w-4 h-4 fill-slate-950" />}
+                  onClick={onSelectOperation}
+                >
+                  COMMENCE OPERATION
+                </TactileButton>
+
+                <TactileButton
+                  variant="clay-primary"
+                  size="md"
+                  icon={<Radio className="w-4 h-4 text-cyan-400" />}
+                  onClick={onPlayTutorial}
+                >
+                  TACTICAL TUTORIAL
+                </TactileButton>
+              </div>
+            </div>
+
+            {/* Micro Intelligence Ticker */}
+            <div className="p-3.5 rounded-xl bg-black/60 border border-white/5 flex items-center justify-between text-xs text-slate-400">
+              <div className="flex items-center gap-2">
+                <Terminal className="w-4 h-4 text-cyan-400" />
+                <span>INTELLIGENCE RADAR: ORION SURVEILLANCE ACTIVE</span>
+              </div>
+              <span className="text-[10px] text-slate-500">SEC. LAYER 4</span>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            {menuOptions.map((opt, idx) => (
-              <button
-                key={idx}
-                onClick={() => {
-                  sound.playConfirm();
-                  opt.action();
-                }}
-                onMouseEnter={() => sound.playUiHover()}
-                className="w-full text-left p-3.5 rounded-xl border border-white/5 bg-[#080d19]/60 hover:bg-slate-900/90 hover:border-cyan-500/40 text-slate-300 hover:text-white transition-all group flex items-center justify-between"
+          {/* Right Column: 4 Brutalist Tactical Modules */}
+          <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {menuModules.map(mod => (
+              <BrutalCard
+                key={mod.code}
+                stamp={mod.code}
+                title={mod.title}
+                subtitle={mod.subtitle}
+                interactive
+                onClick={mod.action}
+                className="group flex flex-col justify-between"
               >
-                <div className="flex items-center gap-3">
-                  <div className="text-slate-500 group-hover:text-cyan-400 transition-colors">
-                    {opt.icon}
-                  </div>
-                  <div>
-                    <div className="text-xs font-display font-bold text-white tracking-wider group-hover:text-cyan-300 transition-colors">
-                      {opt.label}
-                    </div>
-                    <div className="text-[10px] text-slate-500">
-                      {opt.desc}
-                    </div>
+                <div className="space-y-4">
+                  <p className="text-xs text-slate-300 font-sans leading-relaxed">
+                    {mod.desc}
+                  </p>
+                </div>
+
+                <div className="pt-5 mt-4 border-t border-white/5 flex items-center justify-between text-xs">
+                  <span className="text-cyan-400 font-bold group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                    ACCESS MODULE <ArrowUpRight className="w-3.5 h-3.5" />
+                  </span>
+                  <div className="p-2 rounded-lg bg-white/5 group-hover:bg-cyan-500/10 transition-colors">
+                    {mod.icon}
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
-              </button>
+              </BrutalCard>
             ))}
           </div>
+
         </div>
 
-        {/* Bottom Corner Security Connection Stamp */}
-        <div className="flex items-center justify-between text-[10px] text-slate-500 border-t border-white/5 pt-4">
-          <span>GHOSTNET // SECURE ENCRYPTED CONNECTION</span>
-          <span>VERSION 1.0 · OPERATIONAL</span>
+        {/* Bottom Brutalist Footer Stamp */}
+        <div className="flex items-center justify-between text-[10px] text-slate-500 border-t border-white/10 pt-3">
+          <div className="flex items-center gap-4">
+            <span>NEON HEIST ARCHITECTURE // VER 4.2</span>
+            <span>ENCRYPTION: HARDWARE AIR-GAP</span>
+          </div>
+          <span>AUTONOMOUS OPERATING SYSTEM // ALL RIGHTS RESERVED</span>
         </div>
+
       </div>
     </div>
   );

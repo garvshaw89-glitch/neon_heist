@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { MissionResult } from '../../types/game';
 import { sound } from '../../game/audio';
-import { Award, ShieldCheck, Zap, ArrowRight, Star } from 'lucide-react';
+import { Award, ShieldCheck, Zap, ArrowRight, Star, CheckCircle2 } from 'lucide-react';
+import { TactileButton } from '../common/TactileButton';
 
 interface MissionResultsModalProps {
   result: MissionResult;
@@ -36,27 +37,31 @@ export const MissionResultsModal: React.FC<MissionResultsModalProps> = ({
   const timeFormatted = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 
   const ratingLabel = 
-    result.playStyle === 'GHOST' ? 'PERFECT GHOST' :
-    result.playStyle === 'GHOST_WITH_TRACE' ? 'GHOST WITH A TRACE' : 'CHAOS OPERATIVE';
+    result.playStyle === 'GHOST' ? 'PERFECT GHOST // ZERO TRACE' :
+    result.playStyle === 'GHOST_WITH_TRACE' ? 'GHOST WITH TRACE' : 'CHAOS OPERATIVE';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl p-4">
-      <div className="relative w-full max-w-2xl bg-[#090d18] border border-cyan-500/40 rounded-2xl shadow-[0_0_80px_rgba(6,182,212,0.2)] p-8 overflow-hidden">
-        <div className="text-center mb-8">
-          <div className="text-xs font-mono-tech text-cyan-400 uppercase tracking-widest mb-1">
-            CONTRACT FULFILLED · ENCRYPTED TRANSMISSION
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl p-4 select-none font-mono-tech">
+      <div className="relative w-full max-w-2xl brutal-frame glass-primary rounded-2xl shadow-[0_0_90px_rgba(0,0,0,0.95)] p-7 sm:p-9 overflow-hidden terminal-glass surface-imperfections animate-in fade-in zoom-in-95 duration-200">
+        
+        {/* Header */}
+        <div className="text-center mb-6 border-b border-white/10 pb-5">
+          <div className="flex items-center justify-center gap-2 mb-1.5">
+            <span className="brutal-stamp text-cyan-400 border-cyan-500/30">
+              DEBRIEF // CONTRACT COMPLETE
+            </span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-display font-bold text-white tracking-wide">
-            OPERATION COMPLETE
+          <h2 className="text-3xl sm:text-4xl font-display font-black text-white tracking-tight">
+            OPERATION SUCCESSFUL
           </h2>
-          <div className="text-sm font-mono-tech text-slate-400 mt-1">
-            FACILITY: {result.facilityName}
+          <div className="text-xs text-slate-400 mt-1">
+            TARGET SECTOR: {result.facilityName}
           </div>
         </div>
 
-        {/* Rating and Playstyle */}
-        <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 text-center mb-6">
-          <div className="flex justify-center gap-1.5 mb-2">
+        {/* Rating and Stars */}
+        <div className="p-4 rounded-xl bg-black/60 border border-white/10 text-center mb-6">
+          <div className="flex justify-center gap-2 mb-2">
             {Array.from({ length: 5 }).map((_, idx) => (
               <Star
                 key={idx}
@@ -68,68 +73,79 @@ export const MissionResultsModal: React.FC<MissionResultsModalProps> = ({
               />
             ))}
           </div>
-          <div className="text-sm font-display font-bold text-cyan-300 tracking-wider">
+          <div className="text-sm font-display font-black text-cyan-300 tracking-wider">
             {ratingLabel}
           </div>
         </div>
 
-        {/* Performance Metrics */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 font-mono-tech">
-          <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg text-center">
-            <span className="text-[10px] text-slate-500 block">DETECTION</span>
-            <span className="text-base font-bold text-slate-200">{result.detectionPercent.toFixed(1)}%</span>
+        {/* Oversized Performance Telemetry */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <div className="p-3.5 bg-black/60 border border-white/5 rounded-xl text-center">
+            <span className="text-[10px] text-slate-500 block uppercase">DETECTION</span>
+            <span className="text-xl font-display font-extrabold text-slate-200">
+              {result.detectionPercent.toFixed(1)}%
+            </span>
           </div>
-          <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg text-center">
-            <span className="text-[10px] text-slate-500 block">TIME</span>
-            <span className="text-base font-bold text-slate-200">{timeFormatted}</span>
+          <div className="p-3.5 bg-black/60 border border-white/5 rounded-xl text-center">
+            <span className="text-[10px] text-slate-500 block uppercase">TIME</span>
+            <span className="text-xl font-display font-extrabold text-white">
+              {timeFormatted}
+            </span>
           </div>
-          <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg text-center">
-            <span className="text-[10px] text-slate-500 block">HACKED</span>
-            <span className="text-base font-bold text-slate-200">{result.systemsHacked}</span>
+          <div className="p-3.5 bg-black/60 border border-white/5 rounded-xl text-center">
+            <span className="text-[10px] text-slate-500 block uppercase">ICE HACKS</span>
+            <span className="text-xl font-display font-extrabold text-cyan-300">
+              0{result.systemsHacked}
+            </span>
           </div>
-          <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg text-center">
-            <span className="text-[10px] text-slate-500 block">ALARMS</span>
-            <span className={`text-base font-bold ${result.alarmsTriggered === 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {result.alarmsTriggered}
+          <div className="p-3.5 bg-black/60 border border-white/5 rounded-xl text-center">
+            <span className="text-[10px] text-slate-500 block uppercase">ALARMS</span>
+            <span className={`text-xl font-display font-extrabold ${result.alarmsTriggered === 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              0{result.alarmsTriggered}
             </span>
           </div>
         </div>
 
         {/* Payout Breakdown */}
-        <div className="space-y-2 p-4 bg-slate-950/80 border border-slate-800/80 rounded-xl font-mono-tech text-xs mb-8">
+        <div className="space-y-2 p-5 bg-black/50 border border-white/10 rounded-xl text-xs mb-7">
           <div className="flex justify-between text-slate-400">
             <span>BASE CONTRACT PAYOUT</span>
             <span className="text-slate-200">₡{result.basePayout.toLocaleString()}</span>
           </div>
           {result.stealthBonus > 0 && (
             <div className="flex justify-between text-cyan-400">
-              <span>STEALTH INFILTRATION BONUS</span>
+              <span>GHOST PROTOCOL STEALTH BONUS</span>
               <span>+₡{result.stealthBonus.toLocaleString()}</span>
             </div>
           )}
           {result.noCasualtyBonus > 0 && (
             <div className="flex justify-between text-emerald-400">
-              <span>ZERO CASUALTY GHOST BONUS</span>
+              <span>ZERO CASUALTY OPERATIVE BONUS</span>
               <span>+₡{result.noCasualtyBonus.toLocaleString()}</span>
             </div>
           )}
-          <div className="pt-2 border-t border-slate-800 flex justify-between text-base font-bold text-white">
-            <span className="font-display">TOTAL CREDITS EARNED</span>
-            <span className="text-cyan-400 font-mono-tech">₡{animatedTotal.toLocaleString()}</span>
+          <div className="pt-3 border-t border-white/10 flex justify-between items-baseline text-white">
+            <span className="font-display font-bold text-sm uppercase">TOTAL FUNDS DISPATCHED</span>
+            <span className="text-2xl font-display font-black text-cyan-300">
+              ₡{animatedTotal.toLocaleString()}
+            </span>
           </div>
         </div>
 
-        {/* Continue button */}
-        <button
+        {/* Continue Action */}
+        <TactileButton
+          variant="clay-accent"
+          size="lg"
+          className="w-full justify-center"
+          icon={<ArrowRight className="w-4 h-4 fill-slate-950" />}
           onClick={() => {
             sound.playConfirm();
             onContinue();
           }}
-          className="w-full py-3.5 px-6 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-display font-bold text-sm tracking-wider uppercase transition-colors flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(6,182,212,0.4)]"
         >
-          <span>TRANSFER FUNDS & RETURN TO DASHBOARD</span>
-          <ArrowRight className="w-4 h-4" />
-        </button>
+          TRANSFER FUNDS & RETURN TO COMMAND
+        </TactileButton>
+
       </div>
     </div>
   );

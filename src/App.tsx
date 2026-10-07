@@ -17,6 +17,7 @@ import { ArchiveView } from './components/archive/ArchiveView';
 import { SettingsView } from './components/settings/SettingsView';
 import { StealthGame } from './game/StealthGame';
 import { MissionResultsModal } from './components/results/MissionResultsModal';
+import { CustomCursor } from './components/common/CustomCursor';
 
 export default function App() {
   const {
@@ -90,26 +91,33 @@ export default function App() {
   // Render Opening Experience
   if (inIntro) {
     return (
-      <OpeningExperience
-        onEnterNetwork={handleEnterNetwork}
-        hasSavedGame={player.stats.missionsCompleted > 0}
-      />
+      <>
+        <CustomCursor />
+        <OpeningExperience
+          onEnterNetwork={handleEnterNetwork}
+          hasSavedGame={player.stats.missionsCompleted > 0}
+        />
+      </>
     );
   }
 
   // Render In-Mission Active Game Canvas
   if (activeMission) {
     return (
-      <StealthGame
-        mission={activeMission}
-        onMissionComplete={handleMissionComplete}
-        onAbort={handleAbortMission}
-      />
+      <>
+        <CustomCursor />
+        <StealthGame
+          mission={activeMission}
+          onMissionComplete={handleMissionComplete}
+          onAbort={handleAbortMission}
+        />
+      </>
     );
   }
 
   return (
-    <div className="relative w-screen h-screen bg-[#05070b] text-slate-100 flex flex-col overflow-hidden">
+    <div className="relative w-screen h-screen bg-[#040609] text-slate-100 flex flex-col overflow-hidden">
+      <CustomCursor />
       {/* Universal Top Bar */}
       <TopBar
         currentTab={currentTab}

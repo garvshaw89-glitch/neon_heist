@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { PlayerState } from '../../types/game';
 import { Shield, Award, Terminal, Eye, Crosshair } from 'lucide-react';
+import { BrutalCard } from '../common/BrutalCard';
 
 interface ProfileViewProps {
   player: PlayerState;
@@ -64,7 +65,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ player }) => {
         ctx.lineTo(cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius);
         ctx.stroke();
 
-        // Label
         ctx.fillStyle = '#94a3b8';
         ctx.font = '10px "JetBrains Mono", monospace';
         const lx = cx + Math.cos(angle) * (radius + 18);
@@ -89,7 +89,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ player }) => {
       });
       ctx.closePath();
 
-      ctx.fillStyle = 'rgba(6, 182, 212, 0.2)';
+      ctx.fillStyle = 'rgba(34, 211, 238, 0.15)';
       ctx.fill();
       ctx.strokeStyle = '#22d3ee';
       ctx.lineWidth = 2;
@@ -102,104 +102,119 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ player }) => {
     return () => cancelAnimationFrame(animId);
   }, []);
 
-  const stats = player.stats;
-
   return (
-    <div className="w-full h-[calc(100vh-4rem)] p-6 lg:p-8 flex flex-col justify-between overflow-y-auto font-mono-tech">
+    <div className="w-full h-[calc(100vh-4.5rem)] p-6 lg:p-8 flex flex-col justify-between overflow-y-auto font-mono-tech select-none">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/5">
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div>
-          <span className="text-[10px] text-cyan-400 uppercase tracking-widest block mb-0.5">
-            OPERATIVE INTELLIGENCE DOSSIER
-          </span>
-          <h2 className="text-xl font-display font-bold text-white tracking-wide">
-            OPERATIVE PROFILE
+          <div className="flex items-center gap-2 mb-1">
+            <span className="brutal-stamp text-cyan-400 border-cyan-500/30">
+              OPERATIVE // DOSSIER
+            </span>
+            <span className="text-xs text-slate-400">CLASSIFIED PERSONNEL RECORD</span>
+          </div>
+          <h2 className="text-2xl font-display font-extrabold text-white tracking-wide">
+            INTELLIGENCE PROFILE
           </h2>
         </div>
-        <div className="text-xs text-cyan-400 bg-cyan-950/40 border border-cyan-500/30 px-3 py-1.5 rounded-lg font-bold">
-          CLEARANCE: GHOST RANK TIER 1
+        <div className="flex items-center gap-2 text-xs text-slate-400 px-3.5 py-1.5 rounded-xl bg-black/60 border border-white/10">
+          <span>CLASSIFICATION:</span>
+          <span className="text-cyan-300 font-bold">APEX GHOST</span>
         </div>
       </div>
 
-      {/* Main Grid: Identity & Intelligence Spider & Stats Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 my-auto items-center">
-        {/* Left 4 Cols: Identity & Spider Graph */}
-        <div className="lg:col-span-5 p-6 rounded-2xl border border-white/5 bg-[#090e1c]/60 space-y-6">
-          <div className="border-b border-white/5 pb-4">
-            <span className="text-[10px] text-cyan-400 uppercase tracking-widest block mb-1">
-              CODENAME
-            </span>
-            <h3 className="text-2xl font-display font-bold text-white">
+      {/* Grid: Dossier Breakdown & Tactical Radar */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 my-auto items-center py-4">
+        
+        {/* Left 6 Columns: Operative Telemetry & Stats */}
+        <div className="lg:col-span-6 brutal-frame glass-primary p-7 rounded-2xl terminal-glass surface-imperfections space-y-6">
+          <div className="border-b border-white/10 pb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="brutal-stamp text-cyan-300 border-cyan-500/30">
+                RANK 0{player.reputationLevel}
+              </span>
+              <span className="text-xs text-slate-400">GHOSTNET IDENTITY: #07-ALPHA</span>
+            </div>
+            <h3 className="text-3xl font-display font-black text-white tracking-tight">
               {player.codename}
             </h3>
-            <div className="text-xs text-slate-400 mt-1">
-              CLASS: <span className="text-cyan-300 font-bold">{player.classTitle}</span> · REPUTATION LEVEL: <span className="text-white font-bold">{player.reputationLevel}</span>
+            <p className="text-xs text-slate-400 mt-1">
+              ROLE: INFILTRATION SPECIALIST · ZERO CASUALTY DISCIPLINE
+            </p>
+          </div>
+
+          {/* Oversized Numerical Telemetry */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-3.5 bg-black/60 border border-white/5 rounded-xl text-center">
+              <span className="text-[10px] text-slate-500 block uppercase">HEISTS</span>
+              <span className="text-2xl font-display font-black text-white">
+                0{player.stats.missionsCompleted}
+              </span>
+            </div>
+            <div className="p-3.5 bg-black/60 border border-white/5 rounded-xl text-center">
+              <span className="text-[10px] text-slate-500 block uppercase">STEALTH</span>
+              <span className="text-2xl font-display font-black text-emerald-400">
+                {100 - player.stats.detectionPercentage}%
+              </span>
+            </div>
+            <div className="p-3.5 bg-black/60 border border-white/5 rounded-xl text-center">
+              <span className="text-[10px] text-slate-500 block uppercase">HACKS</span>
+              <span className="text-2xl font-display font-black text-cyan-300">
+                0{player.stats.systemsHacked}
+              </span>
+            </div>
+            <div className="p-3.5 bg-black/60 border border-white/5 rounded-xl text-center">
+              <span className="text-[10px] text-slate-500 block uppercase">TAKEDOWNS</span>
+              <span className="text-2xl font-display font-black text-slate-200">
+                0{player.stats.guardsNeutralized}
+              </span>
             </div>
           </div>
 
-          {/* Radar canvas */}
-          <div className="w-full h-64 relative flex items-center justify-center">
+          <div className="p-4 bg-black/50 border border-white/10 rounded-xl space-y-2 text-xs">
+            <span className="text-[10px] text-slate-400 uppercase tracking-widest block font-bold">
+              OPERATIONAL PERFORMANCE EVALUATION
+            </span>
+            <p className="text-slate-300 font-sans leading-relaxed text-xs">
+              Demonstrates exceptional acoustic evasion and electromagnetic interference mastery. Unregistered biometric signature maintains zero cross-referencing on corporate surveillance grids.
+            </p>
+          </div>
+        </div>
+
+        {/* Right 6 Columns: Tactical Radar Geometry */}
+        <div className="lg:col-span-6 brutal-frame glass-primary p-7 rounded-2xl terminal-glass surface-imperfections flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div>
+              <span className="text-[10px] text-cyan-400 uppercase tracking-widest block font-bold">
+                CYBERNETIC PROFICIENCY MATRIX
+              </span>
+              <h4 className="text-lg font-display font-extrabold text-white mt-0.5">
+                NEURAL RADAR TELEMETRY
+              </h4>
+            </div>
+            <span className="brutal-stamp text-cyan-300 border-cyan-500/30">
+              POLYGON 5-AXIS
+            </span>
+          </div>
+
+          {/* Radar Canvas Viewport */}
+          <div className="relative w-full h-64 bg-black/60 border border-white/10 rounded-xl flex items-center justify-center overflow-hidden shadow-inner">
+            <div className="absolute inset-0 brutal-grid opacity-20" />
             <canvas ref={radarCanvasRef} className="w-full h-full block" />
           </div>
 
-          <div className="text-[11px] text-slate-500 text-center">
-            TACTICAL EFFICIENCY: 94.2% · ZERO LETHAL INCIDENTS
+          <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-white/5">
+            <span>AXIS: 5 DOMAINS SYNCHRONIZED</span>
+            <span className="text-cyan-400">RATING: ELITE</span>
           </div>
         </div>
 
-        {/* Right 7 Cols: Detailed Intelligence Stats Matrix */}
-        <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-            <span className="text-[10px] text-slate-500 block mb-1">MISSIONS COMPLETED</span>
-            <span className="text-xl font-display font-bold text-white">{stats.missionsCompleted}</span>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-            <span className="text-[10px] text-slate-500 block mb-1">PERFECT GHOST RUNS</span>
-            <span className="text-xl font-display font-bold text-cyan-300">{stats.perfectInfiltrations}</span>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-            <span className="text-[10px] text-slate-500 block mb-1">DETECTION RATE</span>
-            <span className="text-xl font-display font-bold text-emerald-400">{stats.detectionPercentage}%</span>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-            <span className="text-[10px] text-slate-500 block mb-1">SYSTEMS HACKED</span>
-            <span className="text-xl font-display font-bold text-white">{stats.systemsHacked}</span>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-            <span className="text-[10px] text-slate-500 block mb-1">CAMERAS DISABLED</span>
-            <span className="text-xl font-display font-bold text-white">{stats.camerasDisabled}</span>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-            <span className="text-[10px] text-slate-500 block mb-1">GUARDS NEUTRALIZED</span>
-            <span className="text-xl font-display font-bold text-slate-300">{stats.guardsNeutralized}</span>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-            <span className="text-[10px] text-slate-500 block mb-1">CLEAN EXTRACTIONS</span>
-            <span className="text-xl font-display font-bold text-cyan-300">{stats.cleanExtractions}</span>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-            <span className="text-[10px] text-slate-500 block mb-1">HIGHEST CONTRACT</span>
-            <span className="text-xl font-display font-bold text-white">₡{stats.highestContract.toLocaleString()}</span>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-            <span className="text-[10px] text-slate-500 block mb-1">TOTAL EARNINGS</span>
-            <span className="text-xl font-display font-bold text-cyan-400">₡{stats.totalEarnings.toLocaleString()}</span>
-          </div>
-        </div>
       </div>
 
       {/* Footer */}
-      <div className="pt-4 border-t border-white/5 text-[11px] text-slate-500 flex justify-between">
-        <span>GHOSTNET CLASSIFICATION: CODENAME 'THE GHOST'</span>
-        <span>SECURITY SIGNATURE: ZERO TRACE CONFIRMED</span>
+      <div className="flex items-center justify-between text-[10px] text-slate-500 border-t border-white/10 pt-3">
+        <span>GHOSTNET CLASSIFIED ARCHIVE // OPERATIVE #07</span>
+        <span>ALL DATA SCRUBBED POST-OPERATION</span>
       </div>
     </div>
   );

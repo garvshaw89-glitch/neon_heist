@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { sound } from '../../game/audio';
-import { Sliders, Volume2, Monitor, Keyboard, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Sliders, Volume2, Monitor, Keyboard, RotateCcw, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { TactileButton } from '../common/TactileButton';
+import { ClayKey } from '../common/ClayKey';
 
 interface SettingsViewProps {
   onResetProgress: () => void;
@@ -29,33 +31,37 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   return (
-    <div className="w-full h-[calc(100vh-4rem)] p-6 lg:p-8 flex flex-col justify-between overflow-y-auto font-mono-tech">
+    <div className="w-full h-[calc(100vh-4.5rem)] p-6 lg:p-8 flex flex-col justify-between overflow-y-auto font-mono-tech select-none">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/5">
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div>
-          <span className="text-[10px] text-cyan-400 uppercase tracking-widest block mb-0.5">
-            TERMINAL ENVIRONMENT PREFERENCES
-          </span>
-          <h2 className="text-xl font-display font-bold text-white tracking-wide">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="brutal-stamp text-cyan-400 border-cyan-500/30">
+              SYS // CALIBRATION
+            </span>
+            <span className="text-xs text-slate-400">HARDWARE & KEYBOARD CONTROLS</span>
+          </div>
+          <h2 className="text-2xl font-display font-extrabold text-white tracking-wide">
             SETTINGS & CALIBRATION
           </h2>
         </div>
       </div>
 
       {/* Main Settings Sections */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-auto">
-        {/* Audio Calibration */}
-        <div className="p-6 rounded-2xl border border-white/5 bg-[#090e1c]/60 space-y-6">
-          <div className="flex items-center gap-2 text-sm font-display font-bold text-white border-b border-white/5 pb-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-auto py-4">
+        
+        {/* Audio Calibration in Smoked Glass */}
+        <div className="brutal-frame glass-primary p-7 rounded-2xl terminal-glass surface-imperfections space-y-6">
+          <div className="flex items-center gap-2.5 text-sm font-display font-bold text-white border-b border-white/10 pb-4">
             <Volume2 className="w-4 h-4 text-cyan-400" />
-            <span>AUDIO FREQUENCIES</span>
+            <span>ACOUSTIC & SYNTHESIZER CALIBRATION</span>
           </div>
 
-          <div className="space-y-4 text-xs">
+          <div className="space-y-5 text-xs">
             <div>
-              <div className="flex justify-between text-slate-400 mb-1.5">
-                <span>MASTER VOL</span>
-                <span className="text-cyan-300 font-bold">{masterVol}%</span>
+              <div className="flex justify-between text-slate-400 mb-2 font-bold">
+                <span>MASTER SYNTH VOL</span>
+                <span className="text-cyan-300 font-extrabold">{masterVol}%</span>
               </div>
               <input
                 type="range"
@@ -63,14 +69,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 max="100"
                 value={masterVol}
                 onChange={(e) => handleMasterChange(Number(e.target.value))}
-                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                className="w-full h-2.5 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-cyan-400"
               />
             </div>
 
             <div>
-              <div className="flex justify-between text-slate-400 mb-1.5">
-                <span>TACTICAL SFX VOL</span>
-                <span className="text-cyan-300 font-bold">{sfxVol}%</span>
+              <div className="flex justify-between text-slate-400 mb-2 font-bold">
+                <span>TACTICAL SFX FREQUENCY</span>
+                <span className="text-cyan-300 font-extrabold">{sfxVol}%</span>
               </div>
               <input
                 type="range"
@@ -78,102 +84,113 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 max="100"
                 value={sfxVol}
                 onChange={(e) => handleSfxChange(Number(e.target.value))}
-                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                className="w-full h-2.5 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-cyan-400"
               />
             </div>
 
             <div className="pt-2">
-              <button
+              <TactileButton
+                variant={isMuted ? 'clay-primary' : 'glass'}
+                size="md"
                 onClick={onToggleMute}
-                className="px-4 py-2 rounded-lg border border-slate-700 bg-slate-900 text-xs text-slate-300 hover:text-white transition-colors"
               >
                 {isMuted ? 'UNMUTE MASTER AUDIO' : 'MUTE MASTER AUDIO'}
-              </button>
+              </TactileButton>
             </div>
           </div>
         </div>
 
-        {/* Controls Reference */}
-        <div className="p-6 rounded-2xl border border-white/5 bg-[#090e1c]/60 space-y-6">
-          <div className="flex items-center gap-2 text-sm font-display font-bold text-white border-b border-white/5 pb-3">
+        {/* Physical Clay Controls Reference */}
+        <div className="brutal-frame glass-primary p-7 rounded-2xl terminal-glass surface-imperfections space-y-5">
+          <div className="flex items-center gap-2.5 text-sm font-display font-bold text-white border-b border-white/10 pb-4">
             <Keyboard className="w-4 h-4 text-cyan-400" />
-            <span>OPERATIVE KEYBINDINGS</span>
+            <span>TACTICAL PHYSICAL KEYBINDINGS</span>
           </div>
 
           <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg">
-              <span className="text-[10px] text-slate-500 block">MOVEMENT</span>
-              <span className="text-slate-200 font-bold">W / A / S / D</span>
+            <div className="p-3 bg-black/50 border border-white/10 rounded-xl flex items-center justify-between">
+              <span className="text-slate-400">MOVE INFILTRATION</span>
+              <div className="flex gap-1">
+                <ClayKey keyLabel="W" size="sm" />
+                <ClayKey keyLabel="A" size="sm" />
+                <ClayKey keyLabel="S" size="sm" />
+                <ClayKey keyLabel="D" size="sm" />
+              </div>
             </div>
-            <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg">
-              <span className="text-[10px] text-slate-500 block">CROUCH / SNEAK</span>
-              <span className="text-cyan-300 font-bold">[C] KEY</span>
+
+            <div className="p-3 bg-black/50 border border-white/10 rounded-xl flex items-center justify-between">
+              <span className="text-slate-400">CROUCH (SILENT)</span>
+              <ClayKey keyLabel="C" size="sm" />
             </div>
-            <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg">
-              <span className="text-[10px] text-slate-500 block">OPTICAL CLOAK</span>
-              <span className="text-cyan-300 font-bold">[Q] KEY</span>
+
+            <div className="p-3 bg-black/50 border border-white/10 rounded-xl flex items-center justify-between">
+              <span className="text-slate-400">INTERACT TERMINAL</span>
+              <ClayKey keyLabel="E" size="sm" />
             </div>
-            <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg">
-              <span className="text-[10px] text-slate-500 block">EMP / DISTRACT</span>
-              <span className="text-purple-300 font-bold">[F] KEY</span>
+
+            <div className="p-3 bg-black/50 border border-white/10 rounded-xl flex items-center justify-between">
+              <span className="text-slate-400">PULSE SCANNER</span>
+              <ClayKey keyLabel="Q" size="sm" />
             </div>
-            <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg">
-              <span className="text-[10px] text-slate-500 block">HACK & INTERACT</span>
-              <span className="text-slate-200 font-bold">[E] KEY</span>
+
+            <div className="p-3 bg-black/50 border border-white/10 rounded-xl flex items-center justify-between">
+              <span className="text-slate-400">THROW DECOY</span>
+              <ClayKey keyLabel="F" size="sm" />
             </div>
-            <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg">
-              <span className="text-[10px] text-slate-500 block">SILENT TAKEDOWN</span>
-              <span className="text-rose-300 font-bold">[SPACEBAR]</span>
+
+            <div className="p-3 bg-black/50 border border-white/10 rounded-xl flex items-center justify-between">
+              <span className="text-slate-400">SILENT TAKEDOWN</span>
+              <ClayKey keyLabel="SPACE" size="sm" />
             </div>
+          </div>
+
+          {/* Reset Save Progress */}
+          <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+            <div>
+              <span className="text-xs text-slate-300 font-bold block">OPERATIVE RECORD RESET</span>
+              <span className="text-[10px] text-slate-500">Purge local hardware save matrix</span>
+            </div>
+
+            {showResetConfirm ? (
+              <div className="flex items-center gap-2">
+                <TactileButton
+                  variant="clay-danger"
+                  size="sm"
+                  onClick={() => {
+                    sound.playSuspicionAlert();
+                    setShowResetConfirm(false);
+                    onResetProgress();
+                  }}
+                >
+                  CONFIRM PURGE
+                </TactileButton>
+                <TactileButton
+                  variant="glass"
+                  size="sm"
+                  onClick={() => setShowResetConfirm(false)}
+                >
+                  CANCEL
+                </TactileButton>
+              </div>
+            ) : (
+              <TactileButton
+                variant="glass"
+                size="sm"
+                icon={<RotateCcw className="w-3.5 h-3.5 text-rose-400" />}
+                onClick={() => setShowResetConfirm(true)}
+              >
+                RESET DATA
+              </TactileButton>
+            )}
           </div>
         </div>
 
-        {/* Save & Reset Management */}
-        <div className="md:col-span-2 p-6 rounded-2xl border border-rose-500/20 bg-[#090e1c]/60 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h4 className="text-sm font-display font-bold text-white mb-1">
-              GHOSTNET PROFILE PERSISTENCE
-            </h4>
-            <p className="text-xs text-slate-400">
-              Operative progress is stored in local encrypted cache.
-            </p>
-          </div>
-
-          {showResetConfirm ? (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  sound.playSuspicionAlert();
-                  onResetProgress();
-                  setShowResetConfirm(false);
-                }}
-                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-colors"
-              >
-                CONFIRM WIPE ALL DATA
-              </button>
-              <button
-                onClick={() => setShowResetConfirm(false)}
-                className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 text-xs hover:text-white"
-              >
-                CANCEL
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowResetConfirm(true)}
-              className="px-4 py-2 rounded-xl border border-rose-500/40 text-rose-400 hover:bg-rose-950/30 text-xs font-bold transition-colors flex items-center gap-2"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>RESET ALL PROGRESS</span>
-            </button>
-          )}
-        </div>
       </div>
 
       {/* Footer */}
-      <div className="pt-4 border-t border-white/5 text-[11px] text-slate-500 flex justify-between">
-        <span>GHOSTNET VERSION 4.2.0 · BUILD ID 8942-PX</span>
-        <span>SYSTEM CALIBRATED</span>
+      <div className="flex items-center justify-between text-[10px] text-slate-500 border-t border-white/10 pt-3">
+        <span>STORAGE: PERSISTENT LOCAL AIR-GAP</span>
+        <span>LATENCY: 0.1MS HARDWARE SYNCHRONIZED</span>
       </div>
     </div>
   );
