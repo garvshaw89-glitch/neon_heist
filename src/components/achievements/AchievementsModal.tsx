@@ -67,6 +67,15 @@ export const GAME_ACHIEVEMENTS: AchievementDef[] = [
     rewardCredits: 30000,
     icon: 'Award',
     category: 'MASTERY'
+  },
+  {
+    id: 'ach-ghost-protocol',
+    title: 'THE GHOST PROTOCOL',
+    code: 'CAM-09',
+    description: 'Complete all 9 campaign infiltration operations across Acts I, II, and III.',
+    rewardCredits: 100000,
+    icon: 'ShieldCheck',
+    category: 'MASTERY'
   }
 ];
 

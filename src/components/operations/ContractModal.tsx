@@ -22,9 +22,12 @@ export const ContractModal: React.FC<ContractModalProps> = ({
         {/* Header Band */}
         <div className="flex items-start justify-between border-b border-white/10 pb-5 mb-6">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="brutal-stamp text-cyan-400 border-cyan-500/30">
-                DOSSIER // {mission.operationCode}
+                ACT {mission.actNumber} // {mission.actTitle}
+              </span>
+              <span className="brutal-stamp text-purple-400 border-purple-500/30">
+                LEVEL 0{mission.levelNumber} // {mission.title}
               </span>
               <span className="text-xs text-slate-400 tracking-wider">
                 {mission.sectorName}
@@ -33,6 +36,10 @@ export const ContractModal: React.FC<ContractModalProps> = ({
             <h2 className="text-3xl sm:text-4xl font-display font-black text-white tracking-tight">
               {mission.facilityName}
             </h2>
+            <div className="text-xs text-slate-400 flex items-center gap-2 pt-1 font-mono-tech">
+              <span>ENVIRONMENT:</span>
+              <span className="text-cyan-300 font-bold uppercase">{mission.environmentType}</span>
+            </div>
           </div>
           <button
             onClick={() => {
@@ -50,7 +57,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({
           <div className="p-4 rounded-xl bg-black/60 border border-white/5">
             <span className="text-[10px] text-slate-400 uppercase tracking-widest block">SECURITY LEVEL</span>
             <span className="text-3xl font-display font-extrabold text-amber-400">
-              0{mission.securityRating}
+              {mission.securityRating.toFixed(1)}/10
             </span>
           </div>
 
@@ -63,15 +70,19 @@ export const ContractModal: React.FC<ContractModalProps> = ({
 
           <div className="p-4 rounded-xl bg-black/60 border border-white/5">
             <span className="text-[10px] text-slate-400 uppercase tracking-widest block">RISK PROFILE</span>
-            <span className="text-3xl font-display font-extrabold text-rose-400">
-              APEX
+            <span className={`text-3xl font-display font-extrabold ${
+              mission.risk === 'EXTREME' ? 'text-rose-500' :
+              mission.risk === 'HIGH' ? 'text-rose-400' :
+              mission.risk === 'MEDIUM' ? 'text-amber-400' : 'text-emerald-400'
+            }`}>
+              {mission.risk}
             </span>
           </div>
 
           <div className="p-4 rounded-xl bg-black/60 border border-white/5">
             <span className="text-[10px] text-slate-400 uppercase tracking-widest block">TIME ESTIMATE</span>
             <span className="text-3xl font-display font-extrabold text-white">
-              04:30
+              {mission.estimatedDuration || '04:30'}
             </span>
           </div>
         </div>
@@ -85,10 +96,34 @@ export const ContractModal: React.FC<ContractModalProps> = ({
           <p className="text-sm text-slate-200 leading-relaxed font-sans">
             {mission.briefing}
           </p>
-          <div className="text-xs text-slate-400 pt-1">
-            TARGET CLASSIFICATION: <strong className="text-white">{mission.targetName}</strong> · EXTRACTION VECTOR: <strong className="text-cyan-300">ROOFTOP AERODYNE</strong>
+          <div className="text-xs text-slate-400 pt-1 flex flex-wrap gap-4 border-t border-white/5 mt-2">
+            <div>
+              TARGET ASSET: <strong className="text-white">{mission.targetName}</strong>
+            </div>
+            {mission.unlockReward && (
+              <div>
+                UNLOCKS: <strong className="text-cyan-300">{mission.unlockReward}</strong>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Infiltration Entry Vectors if available */}
+        {mission.entryRoutes && mission.entryRoutes.length > 0 && (
+          <div className="mb-6 p-4 rounded-xl bg-black/40 border border-white/5 space-y-2">
+            <span className="text-[10px] text-slate-400 uppercase tracking-widest block font-bold">
+              AVAILABLE INFILTRATION VECTORS
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300">
+              {mission.entryRoutes.map((route, rIdx) => (
+                <div key={rIdx} className="p-2.5 rounded-lg bg-black/60 border border-white/5 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
+                  <span>{route}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Split Intelligence & Gear Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-7">

@@ -17,7 +17,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 }) => {
   const [masterVol, setMasterVol] = useState(80);
   const [sfxVol, setSfxVol] = useState(85);
-  const [graphicsQuality, setGraphicsQuality] = useState<'ULTRA' | 'HIGH' | 'PERFORMANCE'>('HIGH');
+  const [graphicsQuality, setGraphicsQuality] = useState<'ULTRA' | 'HIGH' | 'MEDIUM' | 'LOW'>('HIGH');
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const handleMasterChange = (val: number) => {
@@ -96,6 +96,46 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               >
                 {isMuted ? 'UNMUTE MASTER AUDIO' : 'MUTE MASTER AUDIO'}
               </TactileButton>
+            </div>
+
+            {/* Graphics Performance Tier */}
+            <div className="pt-3 border-t border-white/10 space-y-2">
+              <div className="flex justify-between items-center text-slate-400 font-bold">
+                <span className="flex items-center gap-1.5">
+                  <Monitor className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>GRAPHICS & PARTICLE TIER</span>
+                </span>
+                <span className="text-cyan-300 font-extrabold">{graphicsQuality}</span>
+              </div>
+              <div className="grid grid-cols-4 gap-1.5 pt-1">
+                {(['ULTRA', 'HIGH', 'MEDIUM', 'LOW'] as const).map(tier => (
+                  <button
+                    key={tier}
+                    onClick={() => {
+                      sound.playUiClick();
+                      setGraphicsQuality(tier);
+                      try {
+                        localStorage.setItem('neon_heist_graphics_quality', tier);
+                      } catch {
+                        // ignore
+                      }
+                    }}
+                    className={`py-1.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                      graphicsQuality === tier
+                        ? 'bg-cyan-950/80 border-cyan-400 text-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.25)]'
+                        : 'bg-black/50 border-white/10 hover:border-white/20 text-slate-400'
+                    }`}
+                  >
+                    {tier}
+                  </button>
+                ))}
+              </div>
+              <div className="text-[10px] text-slate-500 font-mono-tech">
+                {graphicsQuality === 'ULTRA' && 'Maximum dynamic lighting, 120+ particles, full ray casting, screen shake'}
+                {graphicsQuality === 'HIGH' && 'Balanced atmospheric fog, shadow dampening, rain streaks, standard particles'}
+                {graphicsQuality === 'MEDIUM' && 'Optimized shaders, reduced ambient lighting radius, stable mobile frame rate'}
+                {graphicsQuality === 'LOW' && 'Battery saving, minimal particles, simplified lighting calculations'}
+              </div>
             </div>
           </div>
         </div>

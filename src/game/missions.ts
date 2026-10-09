@@ -1,137 +1,153 @@
 import { Mission } from '../types/game';
 
 export const MISSIONS: Mission[] = [
+  // =========================================================================
+  // ACT I — BECOMING THE GHOST
+  // =========================================================================
+
+  // -------------------------------------------------------------------------
+  // LEVEL 01 — DEAD DROP
+  // -------------------------------------------------------------------------
   {
-    id: 'op-00-operation-zero',
-    sectorId: 'sector-00',
-    sectorName: 'SECTOR 00 · UNDERGROUND SAFEHOUSE',
-    operationCode: 'OPERATION ZERO',
-    title: 'FIRST GHOST',
-    facilityName: 'NEXUS COLD STORAGE FACILITY',
-    targetName: 'NEURAL ENCRYPTION PROTOTYPE',
+    id: 'op-01-dead-drop',
+    actNumber: 1,
+    actTitle: 'BECOMING THE GHOST',
+    levelNumber: 1,
+    environmentType: 'Rain-soaked industrial alley',
+    sectorId: 'sector-01',
+    sectorName: 'SECTOR 01 · INDUSTRIAL FREIGHT YARD',
+    operationCode: 'OP // 01',
+    title: 'DEAD DROP',
+    facilityName: 'NEXUS LOGISTICS DEPOT - ALLEYWAY 4',
+    targetName: 'STOLEN CIPHER KEY',
     difficulty: 'RECRUIT',
     basePayout: 20000,
     risk: 'LOW',
-    securityRating: 2.0,
-    briefing: 'A subterranean live-fire test arranged by Vera. Infiltrate the decommissioned Nexus facility, bypass maintenance checkpoints, avoid detection by local patrols, and secure the prototype telemetry drive.',
+    securityRating: 1.0,
+    briefing: 'Begin in a rain-soaked industrial alley. Study guard patrol patterns, use dark shadow pockets to conceal your approach, bypass the maintenance security checkpoint, recover the stolen cipher key, and extract cleanly.',
     secondaryObjectives: [
       'Complete without triggering facility alarms',
       'Neutralize zero guards (Ghost standard)',
-      'Locate and decrypt all security nodes'
+      'Decrypt maintenance auxiliary terminal'
     ],
     recommendedEquipment: [
-      'ACOUSTIC DISTRACTOR',
+      'SILENT BOOTS',
       'NEURAL SCANNER',
-      'SILENT SOLES'
+      'ACOUSTIC DISTRACTOR'
     ],
+    entryRoutes: [
+      'Vector Alpha: South alley drain conduit (Low visibility)',
+      'Vector Bravo: Cargo dock catwalk (Overhead vantage)'
+    ],
+    unlockReward: 'BASIC SCANNER & LEVEL 02 ACCESS',
+    estimatedDuration: '03:30',
     intel: {
       guards: 2,
       cameras: 1,
       drones: 0,
-      securityTier: 'DECOMMISSIONED FACILITY'
+      securityTier: 'TIER 1 DEPOT SECURITY'
     },
     isTutorial: true,
     mapWidth: 1800,
-    mapHeight: 1000,
-    playerStart: { x: 120, y: 820 },
+    mapHeight: 1100,
+    playerStart: { x: 140, y: 880 },
     vault: {
-      x: 1550,
-      y: 280,
+      x: 1540,
+      y: 320,
       width: 130,
       height: 130,
-      targetName: 'NEURAL ENCRYPTION PROTOTYPE',
+      targetName: 'STOLEN CIPHER KEY',
       isCracked: false,
       securityLayers: 2
     },
     extraction: {
-      x: 160,
+      x: 180,
       y: 220,
-      radius: 75,
-      name: 'ROOFTOP EXTRACTION AERODYNE'
+      radius: 80,
+      name: 'FIRE ESCAPE ROOFTOP EXTRACTION'
     },
     lights: [
-      { id: 'light-safehouse', x: 180, y: 820, radius: 180, isOn: true, color: '#fef08a' },
-      { id: 'light-patrol-room', x: 800, y: 750, radius: 220, isOn: true, color: '#e2e8f0' },
-      { id: 'light-cam-corridor', x: 1200, y: 750, radius: 200, isOn: true, color: '#e2e8f0' },
-      { id: 'light-switch-room', x: 1520, y: 750, radius: 220, isOn: true, color: '#fbbf24' },
-      { id: 'light-vault', x: 1610, y: 340, radius: 190, isOn: true, color: '#38bdf8' },
-      { id: 'light-rooftop', x: 160, y: 220, radius: 200, isOn: true, color: '#22d3ee' }
+      { id: 'l1-alley-start', x: 200, y: 880, radius: 180, isOn: true, color: '#fef08a' },
+      { id: 'l1-patrol-room', x: 780, y: 780, radius: 220, isOn: true, color: '#e2e8f0' },
+      { id: 'l1-cam-corridor', x: 1200, y: 780, radius: 200, isOn: true, color: '#e2e8f0' },
+      { id: 'l1-vault-room', x: 1550, y: 340, radius: 200, isOn: true, color: '#38bdf8' },
+      { id: 'l1-extraction', x: 180, y: 220, radius: 210, isOn: true, color: '#22d3ee' }
     ],
     envObjects: [
       {
-        id: 'env-light-switch',
-        x: 1400,
-        y: 690,
+        id: 'env-l1-switch',
+        x: 1380,
+        y: 720,
         width: 24,
         height: 24,
         type: 'LIGHT_SWITCH',
-        name: 'ROOM 4 MAIN LIGHT SWITCH',
+        name: 'ROOM 3 OVERHEAD LIGHT SWITCH',
         isInteracted: false,
-        targetId: 'light-switch-room'
+        targetId: 'l1-vault-room'
       },
       {
-        id: 'env-vent-escape',
-        x: 1350,
+        id: 'env-l1-vent',
+        x: 1360,
         y: 280,
         width: 32,
         height: 32,
         type: 'MAINTENANCE_VENT',
-        name: 'ROOFTOP VENT CONDUIT',
+        name: 'ROOFTOP DUCT CONDUIT',
         isInteracted: false,
-        targetId: 'vent-escape-door'
+        targetId: 'door-l1-vent'
       }
     ],
     walls: [
-      // Outer boundaries
+      // Perimeter
       { x1: 50, y1: 50, x2: 1750, y2: 50, type: 'SOLID' },
-      { x1: 1750, y1: 50, x2: 1750, y2: 950, type: 'SOLID' },
-      { x1: 1750, y1: 950, x2: 50, y2: 950, type: 'SOLID' },
-      { x1: 50, y1: 950, x2: 50, y2: 50, type: 'SOLID' },
+      { x1: 1750, y1: 50, x2: 1750, y2: 1050, type: 'SOLID' },
+      { x1: 1750, y1: 1050, x2: 50, y2: 1050, type: 'SOLID' },
+      { x1: 50, y1: 1050, x2: 50, y2: 50, type: 'SOLID' },
 
-      // Room 1 (Safehouse) Partition
-      { x1: 280, y1: 700, x2: 280, y2: 950, type: 'SOLID' },
-      { x1: 50, y1: 700, x2: 280, y2: 700, type: 'SOLID' },
+      // Room 1 (Alley start barrier)
+      { x1: 320, y1: 720, x2: 320, y2: 1050, type: 'SOLID' },
+      { x1: 50, y1: 720, x2: 320, y2: 720, type: 'SOLID' },
 
-      // Low Duct obstacle between safehouse and patrol corridor
-      { x1: 280, y1: 700, x2: 450, y2: 700, type: 'SOLID' },
-      { x1: 280, y1: 880, x2: 550, y2: 880, type: 'SOLID' },
-      { x1: 450, y1: 700, x2: 550, y2: 700, type: 'SOLID' },
+      // Corridor partition between Start and Patrol Room
+      { x1: 320, y1: 720, x2: 480, y2: 720, type: 'SOLID' },
+      { x1: 320, y1: 900, x2: 560, y2: 900, type: 'SOLID' },
+      { x1: 480, y1: 720, x2: 560, y2: 720, type: 'SOLID' },
 
-      // Shadow Chamber & Patrol room
-      { x1: 550, y1: 650, x2: 980, y2: 650, type: 'SOLID' },
-      { x1: 550, y1: 650, x2: 550, y2: 880, type: 'SOLID' },
-      { x1: 980, y1: 650, x2: 980, y2: 730, type: 'SOLID' },
-      { x1: 980, y1: 730, x2: 980, y2: 830, type: 'DOOR', doorId: 'tutorial-door-01', isOpen: false },
-      { x1: 980, y1: 830, x2: 980, y2: 950, type: 'SOLID' },
+      // Main Patrol Room
+      { x1: 560, y1: 660, x2: 980, y2: 660, type: 'SOLID' },
+      { x1: 560, y1: 660, x2: 560, y2: 900, type: 'SOLID' },
+      { x1: 980, y1: 660, x2: 980, y2: 760, type: 'SOLID' },
+      { x1: 980, y1: 760, x2: 980, y2: 860, type: 'DOOR', doorId: 'door-l1-gate', isOpen: false },
+      { x1: 980, y1: 860, x2: 980, y2: 1050, type: 'SOLID' },
 
-      // Camera corridor
-      { x1: 980, y1: 650, x2: 1380, y2: 650, type: 'SOLID' },
-      { x1: 1380, y1: 650, x2: 1380, y2: 740, type: 'SOLID' },
-      { x1: 1380, y1: 820, x2: 1380, y2: 950, type: 'SOLID' }, // Door gap 740-820
+      // Camera Corridor
+      { x1: 980, y1: 660, x2: 1420, y2: 660, type: 'SOLID' },
+      { x1: 1420, y1: 660, x2: 1420, y2: 770, type: 'SOLID' },
+      { x1: 1420, y1: 850, x2: 1420, y2: 1050, type: 'SOLID' }, // Door gap 770-850
 
-      // Distraction room to Vault stairwell
-      { x1: 1380, y1: 450, x2: 1750, y2: 450, type: 'SOLID' },
-      { x1: 1480, y1: 450, x2: 1480, y2: 200, type: 'SOLID' },
-      { x1: 1480, y1: 200, x2: 1750, y2: 200, type: 'SOLID' },
+      // Vault Chamber
+      { x1: 1420, y1: 480, x2: 1750, y2: 480, type: 'SOLID' },
+      { x1: 1420, y1: 480, x2: 1420, y2: 180, type: 'SOLID' },
+      { x1: 1420, y1: 180, x2: 1750, y2: 180, type: 'SOLID' },
 
-      // Upper floor / Escape rooftop partition
-      { x1: 50, y1: 450, x2: 1380, y2: 450, type: 'SOLID' },
-      { x1: 350, y1: 50, x2: 350, y2: 450, type: 'SOLID' },
-      { x1: 250, y1: 450, x2: 350, y2: 450, type: 'DOOR', doorId: 'vent-escape-door', isOpen: false }
+      // Upper floor partition & Vent escape
+      { x1: 50, y1: 480, x2: 1420, y2: 480, type: 'SOLID' },
+      { x1: 360, y1: 50, x2: 360, y2: 480, type: 'SOLID' },
+      { x1: 260, y1: 480, x2: 360, y2: 480, type: 'DOOR', doorId: 'door-l1-vent', isOpen: false }
     ],
     guards: [
       {
-        id: 'tut-guard-01',
-        x: 820,
-        y: 780,
+        id: 'g1-01',
+        x: 800,
+        y: 800,
         angle: 0,
-        speed: 1.0,
+        speed: 1.1,
         state: 'PATROL',
         patrolPath: [
-          { x: 680, y: 780 },
-          { x: 920, y: 780 },
-          { x: 920, y: 880 },
-          { x: 680, y: 880 }
+          { x: 680, y: 800 },
+          { x: 920, y: 800 },
+          { x: 920, y: 920 },
+          { x: 680, y: 920 }
         ],
         currentPathIndex: 0,
         alertLevel: 0,
@@ -139,17 +155,17 @@ export const MISSIONS: Mission[] = [
         fov: Math.PI * 0.4
       },
       {
-        id: 'tut-guard-02',
+        id: 'g1-02',
         x: 1560,
-        y: 800,
+        y: 820,
         angle: -Math.PI * 0.5,
         speed: 1.1,
         state: 'PATROL',
         patrolPath: [
-          { x: 1560, y: 820 },
-          { x: 1560, y: 680 },
-          { x: 1680, y: 680 },
-          { x: 1680, y: 820 }
+          { x: 1560, y: 860 },
+          { x: 1560, y: 720 },
+          { x: 1680, y: 720 },
+          { x: 1680, y: 860 }
         ],
         currentPathIndex: 0,
         alertLevel: 0,
@@ -159,14 +175,14 @@ export const MISSIONS: Mission[] = [
     ],
     cameras: [
       {
-        id: 'tut-cam-01',
-        x: 1020,
-        y: 670,
+        id: 'cam-l1-01',
+        x: 1040,
+        y: 680,
         angle: 0.8,
         baseAngle: 0.8,
         sweepAngle: 1.1,
         sweepSpeed: 0.7,
-        range: 300,
+        range: 310,
         fov: Math.PI * 0.36,
         isHacked: false,
         isLooping: false,
@@ -177,182 +193,710 @@ export const MISSIONS: Mission[] = [
     lasers: [],
     terminals: [
       {
-        id: 'term-tut-door',
+        id: 'term-l1-gate',
         x: 930,
-        y: 700,
+        y: 710,
         type: 'SIGNAL',
-        name: 'SECURITY CHECKPOINT BUS',
+        name: 'ALLEY MAGNETIC GATE BUS',
         isHacked: false,
-        unlocksDoorId: 'tutorial-door-01',
-        description: 'Rotate waveguide nodes to disengage physical magnetic seal.'
+        unlocksDoorId: 'door-l1-gate',
+        description: 'Rotate waveguide nodes to disengage magnetic barrier.'
       },
       {
-        id: 'term-tut-cam',
-        x: 1220,
-        y: 680,
+        id: 'term-l1-cam',
+        x: 1240,
+        y: 700,
         type: 'CODE',
-        name: 'AURORA-7 CAMERA INTERFACE',
+        name: 'AURORA CAM BUFFER',
         isHacked: false,
-        disablesCameraId: 'tut-cam-01',
-        description: 'Bypass optic bus buffer to disable or loop surveillance sweep.'
+        disablesCameraId: 'cam-l1-01',
+        description: 'Bypass video telemetry buffer to disable surveillance sweep.'
       }
     ]
   },
+
+  // -------------------------------------------------------------------------
+  // LEVEL 02 — BLIND SPOT
+  // -------------------------------------------------------------------------
   {
-    id: 'op-01-silent-entry',
+    id: 'op-02-blind-spot',
+    actNumber: 1,
+    actTitle: 'BECOMING THE GHOST',
+    levelNumber: 2,
+    environmentType: 'Corporate parking structure',
     sectorId: 'sector-01',
-    sectorName: 'SECTOR 01 · FINANCIAL DISTRICT',
-    operationCode: 'OPERATION 01',
-    title: 'SILENT ENTRY',
-    facilityName: 'AURELION DATA TOWER',
-    targetName: 'NEURAL ENCRYPTION KEY',
+    sectorName: 'SECTOR 01 · AURELION PARKING COMPLEX',
+    operationCode: 'OP // 02',
+    title: 'BLIND SPOT',
+    facilityName: 'AURELION PARKING COMPLEX - SUB-LEVEL 3',
+    targetName: 'FLEET TELEMETRY CORE',
     difficulty: 'RECRUIT',
-    basePayout: 25000,
+    basePayout: 28000,
     risk: 'LOW',
-    securityRating: 3.5,
-    briefing: 'Aurelion Corporation has completed development of a prototype quantum-proof neural key. Infiltrate their 42nd-floor data sanctum, bypass perimeter lasers, disable the local surveillance hub, and extract the key without alerting corporate security.',
+    securityRating: 2.0,
+    briefing: 'Sub-level 3 is heavily surveilled by overlapping Aurora-7 cameras. Use the blind spots between armored corporate transports, slip through the ventilation ducts, loop camera feeds at the security terminal, and secure the fleet telemetry core.',
     secondaryObjectives: [
-      'Disable central surveillance terminal',
-      'Do not trigger any security alarms',
-      'Neutralize zero guards (Ghost standard)'
+      'Remain completely undetected throughout infiltration',
+      'Disable or loop all security cameras',
+      'Extract in under 3 minutes'
+    ],
+    recommendedEquipment: [
+      'CAMERA LOOP DEVICE',
+      'OPTICAL CLOAK',
+      'SILENT BOOTS'
+    ],
+    entryRoutes: [
+      'Vector Alpha: South vehicle ramp (Wide sightlines)',
+      'Vector Bravo: Air duct intake pipe (Restricted stealth channel)'
+    ],
+    unlockReward: 'CAMERA LOOP TOOL & EXPANDED SCANNER',
+    estimatedDuration: '04:00',
+    intel: {
+      guards: 2,
+      cameras: 2,
+      drones: 0,
+      securityTier: 'TIER 2 PARKING SECURITY'
+    },
+    mapWidth: 1800,
+    mapHeight: 1100,
+    playerStart: { x: 140, y: 920 },
+    vault: {
+      x: 1480,
+      y: 260,
+      width: 140,
+      height: 140,
+      targetName: 'FLEET TELEMETRY CORE',
+      isCracked: false,
+      securityLayers: 2
+    },
+    extraction: {
+      x: 160,
+      y: 180,
+      radius: 75,
+      name: 'NORTH STAIRWELL EMERGENCY RISER'
+    },
+    lights: [
+      { id: 'l2-bay1', x: 260, y: 880, radius: 210, isOn: true, color: '#cbd5e1' },
+      { id: 'l2-aisle', x: 740, y: 750, radius: 240, isOn: true, color: '#f8fafc' },
+      { id: 'l2-booth', x: 1200, y: 750, radius: 220, isOn: true, color: '#38bdf8' },
+      { id: 'l2-vault', x: 1540, y: 320, radius: 210, isOn: true, color: '#a855f7' },
+      { id: 'l2-extract', x: 160, y: 180, radius: 180, isOn: true, color: '#22d3ee' }
+    ],
+    envObjects: [
+      {
+        id: 'env-l2-vent',
+        x: 480,
+        y: 600,
+        width: 32,
+        height: 32,
+        type: 'MAINTENANCE_VENT',
+        name: 'VENTILATION BYPASS CONDUIT',
+        isInteracted: false,
+        targetId: 'door-l2-vent'
+      },
+      {
+        id: 'env-l2-switch',
+        x: 1050,
+        y: 680,
+        width: 24,
+        height: 24,
+        type: 'LIGHT_SWITCH',
+        name: 'PARKING BAY STROBE SWITCH',
+        isInteracted: false,
+        targetId: 'l2-booth'
+      }
+    ],
+    walls: [
+      // Outer
+      { x1: 50, y1: 50, x2: 1750, y2: 50, type: 'SOLID' },
+      { x1: 1750, y1: 50, x2: 1750, y2: 1050, type: 'SOLID' },
+      { x1: 1750, y1: 1050, x2: 50, y2: 1050, type: 'SOLID' },
+      { x1: 50, y1: 1050, x2: 50, y2: 50, type: 'SOLID' },
+
+      // West loading lane
+      { x1: 320, y1: 700, x2: 320, y2: 1050, type: 'SOLID' },
+      { x1: 50, y1: 700, x2: 240, y2: 700, type: 'SOLID' },
+
+      // Transport pillar blockers (creating blind spots)
+      { x1: 500, y1: 780, x2: 600, y2: 780, type: 'SOLID' },
+      { x1: 600, y1: 780, x2: 600, y2: 950, type: 'SOLID' },
+      { x1: 600, y1: 950, x2: 500, y2: 950, type: 'SOLID' },
+      { x1: 500, y1: 950, x2: 500, y2: 780, type: 'SOLID' },
+
+      { x1: 850, y1: 780, x2: 950, y2: 780, type: 'SOLID' },
+      { x1: 950, y1: 780, x2: 950, y2: 950, type: 'SOLID' },
+      { x1: 950, y1: 950, x2: 850, y2: 950, type: 'SOLID' },
+      { x1: 850, y1: 950, x2: 850, y2: 780, type: 'SOLID' },
+
+      // Central divider wall with doorway
+      { x1: 320, y1: 600, x2: 700, y2: 600, type: 'SOLID' },
+      { x1: 800, y1: 600, x2: 1400, y2: 600, type: 'SOLID' },
+
+      // Security Booth
+      { x1: 1100, y1: 600, x2: 1100, y2: 850, type: 'SOLID' },
+      { x1: 1100, y1: 850, x2: 1400, y2: 850, type: 'SOLID' },
+      { x1: 1400, y1: 600, x2: 1400, y2: 720, type: 'SOLID' },
+      { x1: 1400, y1: 720, x2: 1400, y2: 800, type: 'DOOR', doorId: 'door-l2-booth', isOpen: false },
+      { x1: 1400, y1: 800, x2: 1400, y2: 850, type: 'SOLID' },
+
+      // North Vault chamber
+      { x1: 1350, y1: 150, x2: 1750, y2: 150, type: 'SOLID' },
+      { x1: 1350, y1: 150, x2: 1350, y2: 480, type: 'SOLID' },
+      { x1: 1350, y1: 480, x2: 1500, y2: 480, type: 'SOLID' },
+      { x1: 1500, y1: 480, x2: 1580, y2: 480, type: 'DOOR', doorId: 'door-l2-vault', isOpen: false },
+      { x1: 1580, y1: 480, x2: 1750, y2: 480, type: 'SOLID' },
+
+      // North escape wing
+      { x1: 50, y1: 480, x2: 1350, y2: 480, type: 'SOLID' },
+      { x1: 320, y1: 50, x2: 320, y2: 480, type: 'SOLID' },
+      { x1: 220, y1: 480, x2: 320, y2: 480, type: 'DOOR', doorId: 'door-l2-vent', isOpen: false }
+    ],
+    guards: [
+      {
+        id: 'g2-01',
+        x: 720,
+        y: 860,
+        angle: 0,
+        speed: 1.15,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 420, y: 860 },
+          { x: 780, y: 860 },
+          { x: 780, y: 980 },
+          { x: 420, y: 980 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 280,
+        fov: Math.PI * 0.42
+      },
+      {
+        id: 'g2-02',
+        x: 1250,
+        y: 720,
+        angle: Math.PI,
+        speed: 1.2,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 1250, y: 720 },
+          { x: 1020, y: 720 },
+          { x: 1020, y: 950 },
+          { x: 1250, y: 950 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 280,
+        fov: Math.PI * 0.42
+      }
+    ],
+    cameras: [
+      {
+        id: 'cam-l2-01',
+        x: 760,
+        y: 620,
+        angle: 1.2,
+        baseAngle: 1.2,
+        sweepAngle: 1.3,
+        sweepSpeed: 0.8,
+        range: 320,
+        fov: Math.PI * 0.38,
+        isHacked: false,
+        isLooping: false,
+        isPowerOff: false
+      },
+      {
+        id: 'cam-l2-02',
+        x: 1420,
+        y: 500,
+        angle: 2.1,
+        baseAngle: 2.1,
+        sweepAngle: 1.2,
+        sweepSpeed: 0.75,
+        range: 310,
+        fov: Math.PI * 0.36,
+        isHacked: false,
+        isLooping: false,
+        isPowerOff: false
+      }
+    ],
+    drones: [],
+    lasers: [],
+    terminals: [
+      {
+        id: 'term-l2-loop',
+        x: 1250,
+        y: 640,
+        type: 'CODE',
+        name: 'SURVEILLANCE LOOP TERMINAL',
+        isHacked: false,
+        disablesCameraId: 'cam-l2-01',
+        description: 'Inject continuous loop sequence into sub-level camera matrix.'
+      },
+      {
+        id: 'term-l2-vault',
+        x: 1280,
+        y: 800,
+        type: 'NETWORK',
+        name: 'PARKING SECURITY GATE BUS',
+        isHacked: false,
+        unlocksDoorId: 'door-l2-vault',
+        description: 'Bypass magnetic interlock to courier security cage.'
+      }
+    ]
+  },
+
+  // -------------------------------------------------------------------------
+  // LEVEL 03 — GLASS HOUSE
+  // -------------------------------------------------------------------------
+  {
+    id: 'op-03-glass-house',
+    actNumber: 1,
+    actTitle: 'BECOMING THE GHOST',
+    levelNumber: 3,
+    environmentType: 'Luxury corporate office',
+    sectorId: 'sector-02',
+    sectorName: 'SECTOR 02 · EXECUTIVE ATRIUM',
+    operationCode: 'OP // 03',
+    title: 'GLASS HOUSE',
+    facilityName: 'ORION SYNDICATE PENTHOUSE OFFICES',
+    targetName: 'FINANCIAL EXTORTION DOSSIER',
+    difficulty: 'OPERATIVE',
+    basePayout: 38000,
+    risk: 'MEDIUM',
+    securityRating: 3.0,
+    briefing: 'A penthouse complex encased in tempered glass partitions and reflective marble. Sightlines are exceptionally long. Pick your moments carefully, bypass executive keycard doors, hack the syndicate workstation, and extract the extortion dossier.',
+    secondaryObjectives: [
+      'Do not break stealth or trigger executive lockdown',
+      'Neutralize zero syndicate guards',
+      'Collect all decrypted intelligence files'
     ],
     recommendedEquipment: [
       'OPTICAL CLOAK',
       'NEURAL DECODER',
       'SILENT BOOTS'
     ],
+    entryRoutes: [
+      'Vector Alpha: Service elevator conduit',
+      'Vector Bravo: Exterior window wash gantry'
+    ],
+    unlockReward: 'ADVANCED ACCESS CREDENTIALS & INTELLIGENCE DOSSIER',
+    estimatedDuration: '04:45',
     intel: {
-      guards: 2,
+      guards: 3,
       cameras: 2,
       drones: 0,
-      securityTier: 'TIER 2 PRIVATE SECURITY'
+      securityTier: 'TIER 3 SYNDICATE GUARDS'
     },
-    mapWidth: 1600,
+    mapWidth: 1800,
     mapHeight: 1100,
-    playerStart: { x: 120, y: 920 },
+    playerStart: { x: 140, y: 920 },
     vault: {
-      x: 1380,
+      x: 1520,
       y: 240,
       width: 140,
       height: 140,
-      targetName: 'NEURAL ENCRYPTION KEY',
+      targetName: 'FINANCIAL EXTORTION DOSSIER',
       isCracked: false,
-      securityLayers: 2
+      securityLayers: 3
     },
     extraction: {
-      x: 120,
-      y: 920,
-      radius: 70,
-      name: 'WEST HELIPAD SKYDUCT'
+      x: 180,
+      y: 200,
+      radius: 80,
+      name: 'EXECUTIVE SKYDECK BALCONY'
     },
+    lights: [
+      { id: 'l3-entry', x: 220, y: 900, radius: 220, isOn: true, color: '#fef08a' },
+      { id: 'l3-atrium', x: 750, y: 750, radius: 260, isOn: true, color: '#f8fafc' },
+      { id: 'l3-glass-hall', x: 1200, y: 750, radius: 250, isOn: true, color: '#e0f2fe' },
+      { id: 'l3-boardroom', x: 1540, y: 300, radius: 230, isOn: true, color: '#fef3c7' },
+      { id: 'l3-balcony', x: 180, y: 200, radius: 200, isOn: true, color: '#22d3ee' }
+    ],
+    envObjects: [
+      {
+        id: 'env-l3-switch',
+        x: 950,
+        y: 650,
+        width: 24,
+        height: 24,
+        type: 'LIGHT_SWITCH',
+        name: 'ATRIUM CHANDELIER SWITCH',
+        isInteracted: false,
+        targetId: 'l3-atrium'
+      },
+      {
+        id: 'env-l3-vent',
+        x: 1350,
+        y: 540,
+        width: 32,
+        height: 32,
+        type: 'MAINTENANCE_VENT',
+        name: 'CEILING HVAC DUCT',
+        isInteracted: false,
+        targetId: 'door-l3-ceo'
+      }
+    ],
     walls: [
-      // Outer boundaries
-      { x1: 50, y1: 50, x2: 1550, y2: 50, type: 'SOLID' },
-      { x1: 1550, y1: 50, x2: 1550, y2: 1050, type: 'SOLID' },
-      { x1: 1550, y1: 1050, x2: 50, y2: 1050, type: 'SOLID' },
+      // Outer
+      { x1: 50, y1: 50, x2: 1750, y2: 50, type: 'SOLID' },
+      { x1: 1750, y1: 50, x2: 1750, y2: 1050, type: 'SOLID' },
+      { x1: 1750, y1: 1050, x2: 50, y2: 1050, type: 'SOLID' },
       { x1: 50, y1: 1050, x2: 50, y2: 50, type: 'SOLID' },
 
-      // Entrance corridor
-      { x1: 250, y1: 750, x2: 250, y2: 1050, type: 'SOLID' },
-      { x1: 50, y1: 750, x2: 200, y2: 750, type: 'SOLID' }, // Door gap at 200-250
+      // Entry Lobby
+      { x1: 300, y1: 750, x2: 300, y2: 1050, type: 'SOLID' },
+      { x1: 50, y1: 750, x2: 220, y2: 750, type: 'SOLID' },
 
-      // Main hallway lower wall
-      { x1: 250, y1: 750, x2: 750, y2: 750, type: 'SOLID' },
-      { x1: 850, y1: 750, x2: 1550, y2: 750, type: 'SOLID' },
+      // Glass Conference Rooms (transparent dividers)
+      { x1: 450, y1: 650, x2: 900, y2: 650, type: 'GLASS' },
+      { x1: 450, y1: 650, x2: 450, y2: 950, type: 'GLASS' },
+      { x1: 900, y1: 650, x2: 900, y2: 950, type: 'GLASS' },
+      { x1: 450, y1: 950, x2: 620, y2: 950, type: 'GLASS' },
+      { x1: 720, y1: 950, x2: 900, y2: 950, type: 'GLASS' }, // Door gap 620-720
 
-      // Security Office Room (left middle)
-      { x1: 250, y1: 400, x2: 700, y2: 400, type: 'SOLID' },
-      { x1: 700, y1: 400, x2: 700, y2: 750, type: 'SOLID' },
-      { x1: 250, y1: 400, x2: 250, y2: 650, type: 'SOLID' }, // Door gap 650-750
+      // Main Atrium East Wall
+      { x1: 980, y1: 550, x2: 980, y2: 1050, type: 'SOLID' },
 
-      // Server Farm Room (center)
-      { x1: 780, y1: 200, x2: 1200, y2: 200, type: 'SOLID' },
-      { x1: 780, y1: 200, x2: 780, y2: 550, type: 'SOLID' },
-      { x1: 1200, y1: 200, x2: 1200, y2: 550, type: 'SOLID' },
-      { x1: 780, y1: 550, x2: 950, y2: 550, type: 'SOLID' },
-      { x1: 1050, y1: 550, x2: 1200, y2: 550, type: 'SOLID' }, // Door gap 950-1050
+      // Executive Suite Wing
+      { x1: 980, y1: 550, x2: 1350, y2: 550, type: 'SOLID' },
+      { x1: 1350, y1: 550, x2: 1350, y2: 720, type: 'SOLID' },
+      { x1: 1350, y1: 720, x2: 1350, y2: 820, type: 'DOOR', doorId: 'door-l3-exec', isOpen: false },
+      { x1: 1350, y1: 820, x2: 1350, y2: 1050, type: 'SOLID' },
 
-      // Vault Room (top right)
-      { x1: 1280, y1: 100, x2: 1550, y2: 100, type: 'SOLID' },
-      { x1: 1280, y1: 100, x2: 1280, y2: 450, type: 'SOLID' },
-      { x1: 1280, y1: 450, x2: 1420, y2: 450, type: 'SOLID' },
-      { x1: 1420, y1: 450, x2: 1500, y2: 450, type: 'DOOR', doorId: 'vault-outer-door', isOpen: false },
-      { x1: 1500, y1: 450, x2: 1550, y2: 450, type: 'SOLID' },
+      // Boardroom Vault Room (top right)
+      { x1: 1300, y1: 100, x2: 1750, y2: 100, type: 'SOLID' },
+      { x1: 1300, y1: 100, x2: 1300, y2: 450, type: 'SOLID' },
+      { x1: 1300, y1: 450, x2: 1450, y2: 450, type: 'SOLID' },
+      { x1: 1450, y1: 450, x2: 1550, y2: 450, type: 'DOOR', doorId: 'door-l3-ceo', isOpen: false },
+      { x1: 1550, y1: 450, x2: 1750, y2: 450, type: 'SOLID' },
 
-      // Server pillars (interior cover)
-      { x1: 880, y1: 300, x2: 940, y2: 300, type: 'SOLID' },
-      { x1: 940, y1: 300, x2: 940, y2: 450, type: 'SOLID' },
-      { x1: 940, y1: 450, x2: 880, y2: 450, type: 'SOLID' },
-      { x1: 880, y1: 450, x2: 880, y2: 300, type: 'SOLID' },
-
-      { x1: 1040, y1: 300, x2: 1100, y2: 300, type: 'SOLID' },
-      { x1: 1100, y1: 300, x2: 1100, y2: 450, type: 'SOLID' },
-      { x1: 1100, y1: 450, x2: 1040, y2: 450, type: 'SOLID' },
-      { x1: 1040, y1: 450, x2: 1040, y2: 300, type: 'SOLID' },
+      // Balcony escape partition (top left)
+      { x1: 50, y1: 450, x2: 1300, y2: 450, type: 'SOLID' },
+      { x1: 350, y1: 50, x2: 350, y2: 450, type: 'SOLID' },
+      { x1: 220, y1: 450, x2: 350, y2: 450, type: 'DOOR', doorId: 'door-l3-balcony', isOpen: true }
     ],
     guards: [
       {
-        id: 'guard-01',
-        x: 480,
-        y: 850,
+        id: 'g3-01',
+        x: 650,
+        y: 800,
         angle: 0,
         speed: 1.2,
         state: 'PATROL',
         patrolPath: [
-          { x: 320, y: 850 },
-          { x: 800, y: 850 },
-          { x: 1200, y: 850 },
-          { x: 800, y: 850 }
+          { x: 520, y: 800 },
+          { x: 820, y: 800 },
+          { x: 820, y: 900 },
+          { x: 520, y: 900 }
         ],
         currentPathIndex: 0,
         alertLevel: 0,
-        sightRadius: 280,
-        fov: Math.PI * 0.45
+        sightRadius: 290,
+        fov: Math.PI * 0.44
       },
       {
-        id: 'guard-02',
-        x: 1000,
-        y: 650,
-        angle: Math.PI * 0.5,
-        speed: 1.1,
+        id: 'g3-02',
+        x: 1150,
+        y: 850,
+        angle: -Math.PI * 0.5,
+        speed: 1.25,
         state: 'PATROL',
         patrolPath: [
-          { x: 1000, y: 650 },
-          { x: 1350, y: 650 },
-          { x: 1350, y: 350 },
-          { x: 1000, y: 650 }
+          { x: 1150, y: 950 },
+          { x: 1150, y: 680 },
+          { x: 1280, y: 680 },
+          { x: 1280, y: 950 }
         ],
         currentPathIndex: 0,
         alertLevel: 0,
-        sightRadius: 270,
+        sightRadius: 300,
+        fov: Math.PI * 0.42
+      },
+      {
+        id: 'g3-03',
+        x: 1550,
+        y: 750,
+        angle: Math.PI,
+        speed: 1.2,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 1550, y: 750 },
+          { x: 1400, y: 750 },
+          { x: 1400, y: 920 },
+          { x: 1650, y: 920 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 290,
         fov: Math.PI * 0.42
       }
     ],
     cameras: [
       {
-        id: 'cam-01',
-        x: 260,
-        y: 760,
-        angle: 0.3,
-        baseAngle: 0.3,
-        sweepAngle: 1.0,
-        sweepSpeed: 0.8,
-        range: 300,
-        fov: Math.PI * 0.35,
+        id: 'cam-l3-01',
+        x: 960,
+        y: 580,
+        angle: 1.5,
+        baseAngle: 1.5,
+        sweepAngle: 1.4,
+        sweepSpeed: 0.85,
+        range: 330,
+        fov: Math.PI * 0.38,
         isHacked: false,
         isLooping: false,
         isPowerOff: false
       },
       {
-        id: 'cam-02',
-        x: 1270,
-        y: 460,
-        angle: -1.8,
-        baseAngle: -1.8,
-        sweepAngle: 0.9,
-        sweepSpeed: 0.7,
+        id: 'cam-l3-02',
+        x: 1330,
+        y: 480,
+        angle: 2.2,
+        baseAngle: 2.2,
+        sweepAngle: 1.2,
+        sweepSpeed: 0.9,
         range: 320,
-        fov: Math.PI * 0.35,
+        fov: Math.PI * 0.38,
+        isHacked: false,
+        isLooping: false,
+        isPowerOff: false
+      }
+    ],
+    drones: [],
+    lasers: [],
+    terminals: [
+      {
+        id: 'term-l3-dossier',
+        x: 850,
+        y: 690,
+        type: 'NETWORK',
+        name: 'SYNDICATE FINANCE DESK',
+        isHacked: false,
+        unlocksDoorId: 'door-l3-exec',
+        description: 'Extract confidential offshore balance sheets and unlock suite wing.'
+      },
+      {
+        id: 'term-l3-ceo',
+        x: 1250,
+        y: 600,
+        type: 'SIGNAL',
+        name: 'CEO SUITE BIOMETRIC HUB',
+        isHacked: false,
+        unlocksDoorId: 'door-l3-ceo',
+        description: 'Bypass executive iris scanner to grant vault access.'
+      }
+    ]
+  },
+
+  // =========================================================================
+  // ACT II — CORPORATE INFILTRATION
+  // =========================================================================
+
+  // -------------------------------------------------------------------------
+  // LEVEL 04 — BLACKOUT
+  // -------------------------------------------------------------------------
+  {
+    id: 'op-04-blackout',
+    actNumber: 2,
+    actTitle: 'CORPORATE INFILTRATION',
+    levelNumber: 4,
+    environmentType: 'Underground power station',
+    sectorId: 'sector-03',
+    sectorName: 'SECTOR 03 · SUBTERRANEAN GRID',
+    operationCode: 'OP // 04',
+    title: 'BLACKOUT',
+    facilityName: 'HELIOS GENERATOR STATION 09',
+    targetName: 'GRID BYPASS HARDWARE',
+    difficulty: 'OPERATIVE',
+    basePayout: 50000,
+    risk: 'MEDIUM',
+    securityRating: 4.0,
+    briefing: 'Helios Station powers the entire district. Deep underground, thermal generators hum under armed guard. Trigger the central circuit breaker to kill the primary lighting, navigate the dark under emergency strobes, depower the laser grid, and claim the bypass hardware.',
+    secondaryObjectives: [
+      'Trip the main breaker to initiate total blackout',
+      'Disable the turbine laser grid via terminal override',
+      'Evade detection with zero guard casualties'
+    ],
+    recommendedEquipment: [
+      'NEURAL SCANNER',
+      'EMP DISRUPTOR',
+      'OPTICAL CLOAK'
+    ],
+    entryRoutes: [
+      'Vector Alpha: Hydro-cooling intake tunnel',
+      'Vector Bravo: High-voltage cable riser'
+    ],
+    unlockReward: 'POWER-GRID MANIPULATION PROTOCOLS',
+    estimatedDuration: '05:00',
+    intel: {
+      guards: 3,
+      cameras: 2,
+      drones: 0,
+      securityTier: 'TIER 3 GENERATOR SECURITY'
+    },
+    mapWidth: 1800,
+    mapHeight: 1100,
+    playerStart: { x: 140, y: 900 },
+    vault: {
+      x: 1540,
+      y: 280,
+      width: 140,
+      height: 140,
+      targetName: 'GRID BYPASS HARDWARE',
+      isCracked: false,
+      securityLayers: 3
+    },
+    extraction: {
+      x: 160,
+      y: 180,
+      radius: 80,
+      name: 'COOLING TOWER EXHAUST VENT'
+    },
+    lights: [
+      { id: 'l4-intake', x: 220, y: 900, radius: 200, isOn: true, color: '#fef08a' },
+      { id: 'l4-turbines', x: 750, y: 780, radius: 260, isOn: true, color: '#e2e8f0' },
+      { id: 'l4-generator', x: 1200, y: 780, radius: 240, isOn: true, color: '#fbbf24' },
+      { id: 'l4-vault', x: 1540, y: 320, radius: 220, isOn: true, color: '#38bdf8' },
+      { id: 'l4-extract', x: 160, y: 180, radius: 200, isOn: true, color: '#22d3ee' }
+    ],
+    envObjects: [
+      {
+        id: 'env-l4-breaker',
+        x: 480,
+        y: 720,
+        width: 30,
+        height: 30,
+        type: 'CIRCUIT_BREAKER',
+        name: 'STATION PRIMARY MASTER BREAKER',
+        isInteracted: false,
+        targetId: 'l4-turbines'
+      },
+      {
+        id: 'env-l4-switch',
+        x: 1350,
+        y: 650,
+        width: 24,
+        height: 24,
+        type: 'LIGHT_SWITCH',
+        name: 'AUXILIARY WORKSHOP LIGHTS',
+        isInteracted: false,
+        targetId: 'l4-generator'
+      }
+    ],
+    walls: [
+      // Outer boundaries
+      { x1: 50, y1: 50, x2: 1750, y2: 50, type: 'SOLID' },
+      { x1: 1750, y1: 50, x2: 1750, y2: 1050, type: 'SOLID' },
+      { x1: 1750, y1: 1050, x2: 50, y2: 1050, type: 'SOLID' },
+      { x1: 50, y1: 1050, x2: 50, y2: 50, type: 'SOLID' },
+
+      // Intake shaft wall
+      { x1: 300, y1: 750, x2: 300, y2: 1050, type: 'SOLID' },
+      { x1: 50, y1: 750, x2: 200, y2: 750, type: 'SOLID' },
+
+      // Main Turbine Hall Lower Walls
+      { x1: 300, y1: 750, x2: 800, y2: 750, type: 'SOLID' },
+      { x1: 900, y1: 750, x2: 1400, y2: 750, type: 'SOLID' },
+
+      // Generator Core Wall
+      { x1: 850, y1: 520, x2: 850, y2: 750, type: 'SOLID' },
+      { x1: 850, y1: 520, x2: 1400, y2: 520, type: 'SOLID' },
+      { x1: 1400, y1: 520, x2: 1400, y2: 700, type: 'SOLID' },
+      { x1: 1400, y1: 700, x2: 1400, y2: 800, type: 'DOOR', doorId: 'door-l4-gen', isOpen: false },
+      { x1: 1400, y1: 800, x2: 1400, y2: 1050, type: 'SOLID' },
+
+      // High-Voltage Vault Room
+      { x1: 1350, y1: 120, x2: 1750, y2: 120, type: 'SOLID' },
+      { x1: 1350, y1: 120, x2: 1350, y2: 460, type: 'SOLID' },
+      { x1: 1350, y1: 460, x2: 1520, y2: 460, type: 'SOLID' },
+      { x1: 1520, y1: 460, x2: 1600, y2: 460, type: 'DOOR', doorId: 'door-l4-vault', isOpen: false },
+      { x1: 1600, y1: 460, x2: 1750, y2: 460, type: 'SOLID' },
+
+      // Northern exhaust partition
+      { x1: 50, y1: 460, x2: 1350, y2: 460, type: 'SOLID' },
+      { x1: 340, y1: 50, x2: 340, y2: 460, type: 'SOLID' },
+      { x1: 220, y1: 460, x2: 340, y2: 460, type: 'DOOR', doorId: 'door-l4-exhaust', isOpen: true }
+    ],
+    guards: [
+      {
+        id: 'g4-01',
+        x: 620,
+        y: 840,
+        angle: 0,
+        speed: 1.15,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 420, y: 840 },
+          { x: 800, y: 840 },
+          { x: 800, y: 960 },
+          { x: 420, y: 960 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 280,
+        fov: Math.PI * 0.4
+      },
+      {
+        id: 'g4-02',
+        x: 1100,
+        y: 820,
+        angle: Math.PI,
+        speed: 1.2,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 1100, y: 820 },
+          { x: 920, y: 820 },
+          { x: 920, y: 980 },
+          { x: 1300, y: 980 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 290,
+        fov: Math.PI * 0.42
+      },
+      {
+        id: 'g4-03',
+        x: 1150,
+        y: 620,
+        angle: 0,
+        speed: 1.2,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 950, y: 620 },
+          { x: 1320, y: 620 },
+          { x: 1320, y: 700 },
+          { x: 950, y: 700 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 300,
+        fov: Math.PI * 0.42
+      }
+    ],
+    cameras: [
+      {
+        id: 'cam-l4-01',
+        x: 820,
+        y: 540,
+        angle: 1.2,
+        baseAngle: 1.2,
+        sweepAngle: 1.3,
+        sweepSpeed: 0.8,
+        range: 320,
+        fov: Math.PI * 0.36,
+        isHacked: false,
+        isLooping: false,
+        isPowerOff: false
+      },
+      {
+        id: 'cam-l4-02',
+        x: 1380,
+        y: 480,
+        angle: 2.2,
+        baseAngle: 2.2,
+        sweepAngle: 1.2,
+        sweepSpeed: 0.85,
+        range: 330,
+        fov: Math.PI * 0.38,
         isHacked: false,
         isLooping: false,
         isPowerOff: false
@@ -361,154 +905,454 @@ export const MISSIONS: Mission[] = [
     drones: [],
     lasers: [
       {
-        id: 'laser-01',
-        x1: 750,
+        id: 'laser-l4-turbine',
+        x1: 900,
         y1: 750,
-        x2: 850,
-        y2: 750,
+        x2: 900,
+        y2: 880,
         isActive: true,
-        cycleInterval: 4000,
-        cycleOffset: 0,
-        isHacked: false
+        cycleInterval: 3500,
+        cycleOffset: 0
       }
     ],
     terminals: [
       {
-        id: 'term-security-01',
-        x: 350,
-        y: 450,
-        type: 'SIGNAL',
-        name: 'CENTRAL SURVEILLANCE OVERRIDE',
+        id: 'term-l4-laser',
+        x: 750,
+        y: 710,
+        type: 'OVERRIDE',
+        name: 'TURBINE LASER OVERRIDE',
         isHacked: false,
-        disablesCameraId: 'cam-01',
-        description: 'Align optical frequency to disable entrance surveillance feed.'
+        disablesLaserId: 'laser-l4-turbine',
+        description: 'Depower high-voltage laser barrier across generator access corridor.'
       },
       {
-        id: 'term-laser-breaker',
-        x: 850,
-        y: 250,
+        id: 'term-l4-vault',
+        x: 1250,
+        y: 560,
         type: 'CODE',
-        name: 'CORRIDOR POWER GRID',
+        name: 'CAPACITOR VAULT LOGIC BUS',
         isHacked: false,
-        disablesLaserId: 'laser-01',
-        description: 'Bypass breaker code sequence to deactivate hallway laser matrix.'
-      },
-      {
-        id: 'term-vault-access',
-        x: 1350,
-        y: 500,
-        type: 'NETWORK',
-        name: 'VAULT SANCTUM ACCESS',
-        isHacked: false,
-        unlocksDoorId: 'vault-outer-door',
-        description: 'Decrypt node architecture to release magnetic security lock on the vault.'
+        unlocksDoorId: 'door-l4-vault',
+        description: 'Bypass electromagnetic isolation seal guarding grid bypass hardware.'
       }
     ]
   },
+
+  // -------------------------------------------------------------------------
+  // LEVEL 05 — SILENT FREQUENCY
+  // -------------------------------------------------------------------------
   {
-    id: 'op-02-cold-cipher',
-    sectorId: 'sector-02',
-    sectorName: 'SECTOR 02 · CORPORATE ZONE',
-    operationCode: 'OPERATION 02',
-    title: 'COLD CIPHER',
-    facilityName: 'ORION DYNAMICS',
-    targetName: 'QUANTUM ACCESS KEY',
+    id: 'op-05-silent-frequency',
+    actNumber: 2,
+    actTitle: 'CORPORATE INFILTRATION',
+    levelNumber: 5,
+    environmentType: 'Communications facility',
+    sectorId: 'sector-04',
+    sectorName: 'SECTOR 04 · BROADCAST ARRAY',
+    operationCode: 'OP // 05',
+    title: 'SILENT FREQUENCY',
+    facilityName: 'VOX-NET SATELLITE RELAY TOWER',
+    targetName: 'QUANTUM FREQUENCY CIPHER',
     difficulty: 'OPERATIVE',
-    basePayout: 42000,
-    risk: 'HIGH',
-    securityRating: 8.4,
-    briefing: 'Extract the Quantum Access Key from Orion Dynamics executive research vault. The facility is equipped with synchronized sweeping CCTV sensors, armed automated security guards, and bi-directional laser barriers. Infiltrate undetected.',
+    basePayout: 62000,
+    risk: 'MEDIUM',
+    securityRating: 5.0,
+    briefing: 'Vox-Net operates the megacity communications spine. Guards here are equipped with auditory surveillance headgear. Footstep noise will alert them from extreme distances. Maintain crouch stealth, deploy noise decoys, intercept the comms signal, and extract the quantum cipher.',
     secondaryObjectives: [
-      'Disable central surveillance node',
-      'Do not trigger facility lockdown',
-      'Extract without casualties or trace'
+      'Maintain strict crouch discipline in sound-sensitive zones',
+      'Deploy distraction decoy to divert security patrol',
+      'Zero alarms triggered'
     ],
     recommendedEquipment: [
-      'OPTICAL CLOAK',
-      'EMP PULSE',
-      'REMOTE ACCESS DEVICE',
-      'DECIBEL DAMPENER'
+      'SILENT BOOTS',
+      'ACOUSTIC DISTRACTOR',
+      'SIGNAL JAMMER'
     ],
+    entryRoutes: [
+      'Vector Alpha: Maintenance antenna ladder',
+      'Vector Bravo: Fiber-optic cable conduit'
+    ],
+    unlockReward: 'SIGNAL INTERCEPTOR & ACOUSTIC VISUALIZER',
+    estimatedDuration: '05:15',
     intel: {
-      guards: 4,
-      cameras: 3,
-      drones: 1,
-      securityTier: 'TIER 3 CORPORATE DEFENSE'
+      guards: 3,
+      cameras: 2,
+      drones: 0,
+      securityTier: 'TIER 3 AUDIO-SENSITIVE SECURITY'
     },
     mapWidth: 1800,
-    mapHeight: 1200,
-    playerStart: { x: 120, y: 1050 },
+    mapHeight: 1100,
+    playerStart: { x: 140, y: 880 },
     vault: {
-      x: 1600,
-      y: 200,
-      width: 150,
-      height: 150,
-      targetName: 'QUANTUM ACCESS KEY',
+      x: 1520,
+      y: 220,
+      width: 140,
+      height: 140,
+      targetName: 'QUANTUM FREQUENCY CIPHER',
       isCracked: false,
       securityLayers: 3
     },
     extraction: {
-      x: 120,
-      y: 1050,
+      x: 160,
+      y: 160,
       radius: 80,
-      name: 'VENTILATION ROOF EXHAUST'
+      name: 'PARABOLIC DISH SERVICE GANTRY'
     },
+    lights: [
+      { id: 'l5-cable-room', x: 220, y: 880, radius: 210, isOn: true, color: '#fef08a' },
+      { id: 'l5-server-farm', x: 750, y: 750, radius: 260, isOn: true, color: '#e0f2fe' },
+      { id: 'l5-relay-hall', x: 1200, y: 750, radius: 250, isOn: true, color: '#38bdf8' },
+      { id: 'l5-transmitter', x: 1540, y: 260, radius: 220, isOn: true, color: '#818cf8' },
+      { id: 'l5-extract', x: 160, y: 160, radius: 190, isOn: true, color: '#22d3ee' }
+    ],
+    envObjects: [
+      {
+        id: 'env-l5-vent',
+        x: 600,
+        y: 620,
+        width: 32,
+        height: 32,
+        type: 'MAINTENANCE_VENT',
+        name: 'ACOUSTIC BAFFLE BYPASS DUCT',
+        isInteracted: false,
+        targetId: 'door-l5-server'
+      },
+      {
+        id: 'env-l5-switch',
+        x: 1100,
+        y: 680,
+        width: 24,
+        height: 24,
+        type: 'LIGHT_SWITCH',
+        name: 'BROADCAST BAY HALOGEN SWITCH',
+        isInteracted: false,
+        targetId: 'l5-relay-hall'
+      }
+    ],
     walls: [
       // Outer
       { x1: 50, y1: 50, x2: 1750, y2: 50, type: 'SOLID' },
-      { x1: 1750, y1: 50, x2: 1750, y2: 1150, type: 'SOLID' },
-      { x1: 1750, y1: 1150, x2: 50, y2: 1150, type: 'SOLID' },
-      { x1: 50, y1: 1150, x2: 50, y2: 50, type: 'SOLID' },
+      { x1: 1750, y1: 50, x2: 1750, y2: 1050, type: 'SOLID' },
+      { x1: 1750, y1: 1050, x2: 50, y2: 1050, type: 'SOLID' },
+      { x1: 50, y1: 1050, x2: 50, y2: 50, type: 'SOLID' },
 
-      // Ingress corridor
-      { x1: 250, y1: 850, x2: 250, y2: 1150, type: 'SOLID' },
-      { x1: 250, y1: 850, x2: 600, y2: 850, type: 'SOLID' },
-      { x1: 700, y1: 850, x2: 1150, y2: 850, type: 'SOLID' },
+      // Entry Cable Room
+      { x1: 300, y1: 720, x2: 300, y2: 1050, type: 'SOLID' },
+      { x1: 50, y1: 720, x2: 220, y2: 720, type: 'SOLID' },
 
-      // Main lab wall
-      { x1: 450, y1: 450, x2: 450, y2: 850, type: 'SOLID' },
-      { x1: 450, y1: 450, x2: 1000, y2: 450, type: 'SOLID' },
+      // Acoustic Server Farm Room
+      { x1: 420, y1: 620, x2: 900, y2: 620, type: 'SOLID' },
+      { x1: 420, y1: 620, x2: 420, y2: 950, type: 'SOLID' },
+      { x1: 900, y1: 620, x2: 900, y2: 760, type: 'SOLID' },
+      { x1: 900, y1: 760, x2: 900, y2: 860, type: 'DOOR', doorId: 'door-l5-server', isOpen: false },
+      { x1: 900, y1: 860, x2: 900, y2: 1050, type: 'SOLID' },
 
-      // Camera control room (lower right)
-      { x1: 1150, y1: 700, x2: 1650, y2: 700, type: 'SOLID' },
-      { x1: 1150, y1: 700, x2: 1150, y2: 1150, type: 'SOLID' },
-      { x1: 1350, y1: 700, x2: 1450, y2: 700, type: 'DOOR', doorId: 'cam-room-door', isOpen: false },
+      // Central Corridor Wall
+      { x1: 900, y1: 620, x2: 1400, y2: 620, type: 'SOLID' },
+      { x1: 1400, y1: 620, x2: 1400, y2: 740, type: 'SOLID' },
+      { x1: 1400, y1: 740, x2: 1400, y2: 840, type: 'DOOR', doorId: 'door-l5-transmitter', isOpen: false },
+      { x1: 1400, y1: 840, x2: 1400, y2: 1050, type: 'SOLID' },
 
-      // Cryo storage center
-      { x1: 650, y1: 150, x2: 1250, y2: 150, type: 'SOLID' },
-      { x1: 650, y1: 150, x2: 650, y2: 400, type: 'SOLID' },
-      { x1: 1250, y1: 150, x2: 1250, y2: 400, type: 'SOLID' },
+      // Transmitter Vault Chamber (top right)
+      { x1: 1320, y1: 100, x2: 1750, y2: 100, type: 'SOLID' },
+      { x1: 1320, y1: 100, x2: 1320, y2: 460, type: 'SOLID' },
+      { x1: 1320, y1: 460, x2: 1480, y2: 460, type: 'SOLID' },
+      { x1: 1480, y1: 460, x2: 1560, y2: 460, type: 'DOOR', doorId: 'door-l5-vault', isOpen: false },
+      { x1: 1560, y1: 460, x2: 1750, y2: 460, type: 'SOLID' },
 
-      // Vault inner walls
-      { x1: 1450, y1: 50, x2: 1450, y2: 400, type: 'SOLID' },
-      { x1: 1450, y1: 400, x2: 1620, y2: 400, type: 'SOLID' },
-      { x1: 1620, y1: 400, x2: 1700, y2: 400, type: 'DOOR', doorId: 'orion-vault-gate', isOpen: false },
-      { x1: 1700, y1: 400, x2: 1750, y2: 400, type: 'SOLID' },
-
-      // Lab central consoles / pillars
-      { x1: 750, y1: 600, x2: 850, y2: 600, type: 'SOLID' },
-      { x1: 850, y1: 600, x2: 850, y2: 720, type: 'SOLID' },
-      { x1: 850, y1: 720, x2: 750, y2: 720, type: 'SOLID' },
-      { x1: 750, y1: 720, x2: 750, y2: 600, type: 'SOLID' },
-
-      { x1: 950, y1: 220, x2: 1050, y2: 220, type: 'SOLID' },
-      { x1: 1050, y1: 220, x2: 1050, y2: 320, type: 'SOLID' },
-      { x1: 1050, y1: 320, x2: 950, y2: 320, type: 'SOLID' },
-      { x1: 950, y1: 320, x2: 950, y2: 220, type: 'SOLID' }
+      // North antenna gantry escape wing
+      { x1: 50, y1: 460, x2: 1320, y2: 460, type: 'SOLID' },
+      { x1: 340, y1: 50, x2: 340, y2: 460, type: 'SOLID' },
+      { x1: 220, y1: 460, x2: 340, y2: 460, type: 'DOOR', doorId: 'door-l5-antenna', isOpen: true }
     ],
     guards: [
       {
-        id: 'orion-g1',
-        x: 400,
-        y: 950,
+        id: 'g5-01',
+        x: 650,
+        y: 780,
         angle: 0,
+        speed: 1.2,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 480, y: 780 },
+          { x: 820, y: 780 },
+          { x: 820, y: 920 },
+          { x: 480, y: 920 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 280,
+        fov: Math.PI * 0.4
+      },
+      {
+        id: 'g5-02',
+        x: 1150,
+        y: 820,
+        angle: -Math.PI * 0.5,
+        speed: 1.25,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 1150, y: 920 },
+          { x: 1150, y: 700 },
+          { x: 1320, y: 700 },
+          { x: 1320, y: 920 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 290,
+        fov: Math.PI * 0.42
+      },
+      {
+        id: 'g5-03',
+        x: 1550,
+        y: 680,
+        angle: Math.PI,
+        speed: 1.2,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 1550, y: 680 },
+          { x: 1420, y: 680 },
+          { x: 1420, y: 920 },
+          { x: 1680, y: 920 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 300,
+        fov: Math.PI * 0.42
+      }
+    ],
+    cameras: [
+      {
+        id: 'cam-l5-01',
+        x: 880,
+        y: 640,
+        angle: 1.3,
+        baseAngle: 1.3,
+        sweepAngle: 1.3,
+        sweepSpeed: 0.85,
+        range: 320,
+        fov: Math.PI * 0.38,
+        isHacked: false,
+        isLooping: false,
+        isPowerOff: false
+      },
+      {
+        id: 'cam-l5-02',
+        x: 1380,
+        y: 500,
+        angle: 2.3,
+        baseAngle: 2.3,
+        sweepAngle: 1.2,
+        sweepSpeed: 0.8,
+        range: 310,
+        fov: Math.PI * 0.36,
+        isHacked: false,
+        isLooping: false,
+        isPowerOff: false
+      }
+    ],
+    drones: [],
+    lasers: [],
+    terminals: [
+      {
+        id: 'term-l5-signal',
+        x: 820,
+        y: 660,
+        type: 'SIGNAL',
+        name: 'COMMS INTERCEPTION CONSOLE',
+        isHacked: false,
+        unlocksDoorId: 'door-l5-server',
+        description: 'Intercept encrypted carrier frequency and unlock server farm.'
+      },
+      {
+        id: 'term-l5-vault',
+        x: 1250,
+        y: 660,
+        type: 'NETWORK',
+        name: 'TRANSMITTER CORE MATRIX',
+        isHacked: false,
+        unlocksDoorId: 'door-l5-vault',
+        description: 'Disengage transmitter radiation shroud to access cipher core.'
+      }
+    ]
+  },
+
+  // -------------------------------------------------------------------------
+  // LEVEL 06 — THE ARCHIVE
+  // -------------------------------------------------------------------------
+  {
+    id: 'op-06-the-archive',
+    actNumber: 2,
+    actTitle: 'CORPORATE INFILTRATION',
+    levelNumber: 6,
+    environmentType: 'Classified data vault',
+    sectorId: 'sector-05',
+    sectorName: 'SECTOR 05 · SECURE ARCHIVES',
+    operationCode: 'OP // 06',
+    title: 'THE ARCHIVE',
+    facilityName: 'CHRONOS DEEP DATA SANCTUM',
+    targetName: 'PROJECT GHOST CIPHER ARCHIVE',
+    difficulty: 'GHOST',
+    basePayout: 75000,
+    risk: 'HIGH',
+    securityRating: 6.0,
+    briefing: 'Chronos Sanctum stores centuries of classified black projects. A layered authentication grid protects the central data vault. Solve the multi-stage terminal challenges, outmaneuver the elite patrolling guards, retrieve the Project Ghost files, and vanish without a trace.',
+    secondaryObjectives: [
+      'Complete all 3 security layer authentication hacks',
+      'Neutralize zero elite archive guards',
+      'Recover the classified Project Ghost dossier fragment'
+    ],
+    recommendedEquipment: [
+      'NEURAL DECODER',
+      'OPTICAL CLOAK',
+      'REMOTE ACCESS DEVICE'
+    ],
+    entryRoutes: [
+      'Vector Alpha: Cryo-coolant intake valve',
+      'Vector Bravo: Pneumatic archive delivery tube'
+    ],
+    unlockReward: 'ADVANCED HACKING TOOLS & PREMIUM CONTRACTS',
+    estimatedDuration: '05:45',
+    intel: {
+      guards: 4,
+      cameras: 2,
+      drones: 0,
+      securityTier: 'TIER 4 ELITE ARCHIVE GUARDS'
+    },
+    mapWidth: 1800,
+    mapHeight: 1100,
+    playerStart: { x: 140, y: 920 },
+    vault: {
+      x: 1520,
+      y: 220,
+      width: 140,
+      height: 140,
+      targetName: 'PROJECT GHOST CIPHER ARCHIVE',
+      isCracked: false,
+      securityLayers: 3
+    },
+    extraction: {
+      x: 140,
+      y: 200,
+      radius: 80,
+      name: 'DEEP SERVICE CONDUIT SHUTTLE'
+    },
+    lights: [
+      { id: 'l6-airlock', x: 220, y: 920, radius: 210, isOn: true, color: '#fef08a' },
+      { id: 'l6-sector-a', x: 650, y: 780, radius: 240, isOn: true, color: '#e2e8f0' },
+      { id: 'l6-sector-b', x: 1100, y: 780, radius: 250, isOn: true, color: '#a855f7' },
+      { id: 'l6-cryocore', x: 1540, y: 280, radius: 230, isOn: true, color: '#38bdf8' },
+      { id: 'l6-extract', x: 140, y: 200, radius: 200, isOn: true, color: '#22d3ee' }
+    ],
+    envObjects: [
+      {
+        id: 'env-l6-switch',
+        x: 880,
+        y: 680,
+        width: 24,
+        height: 24,
+        type: 'LIGHT_SWITCH',
+        name: 'ARCHIVE STACK A LIGHT SWITCH',
+        isInteracted: false,
+        targetId: 'l6-sector-a'
+      },
+      {
+        id: 'env-l6-vent',
+        x: 1300,
+        y: 520,
+        width: 32,
+        height: 32,
+        type: 'MAINTENANCE_VENT',
+        name: 'CRYO-CONDUIT ACCESS VENT',
+        isInteracted: false,
+        targetId: 'door-l6-sanctum'
+      }
+    ],
+    walls: [
+      // Outer
+      { x1: 50, y1: 50, x2: 1750, y2: 50, type: 'SOLID' },
+      { x1: 1750, y1: 50, x2: 1750, y2: 1050, type: 'SOLID' },
+      { x1: 1750, y1: 1050, x2: 50, y2: 1050, type: 'SOLID' },
+      { x1: 50, y1: 1050, x2: 50, y2: 50, type: 'SOLID' },
+
+      // Airlock
+      { x1: 300, y1: 750, x2: 300, y2: 1050, type: 'SOLID' },
+      { x1: 50, y1: 750, x2: 200, y2: 750, type: 'SOLID' },
+
+      // Sector Alpha Partition
+      { x1: 300, y1: 750, x2: 850, y2: 750, type: 'SOLID' },
+      { x1: 850, y1: 750, x2: 850, y2: 860, type: 'SOLID' },
+      { x1: 850, y1: 860, x2: 850, y2: 960, type: 'DOOR', doorId: 'door-l6-alpha', isOpen: false },
+      { x1: 850, y1: 960, x2: 850, y2: 1050, type: 'SOLID' },
+
+      // Sector Beta Partition
+      { x1: 850, y1: 550, x2: 1350, y2: 550, type: 'SOLID' },
+      { x1: 1350, y1: 550, x2: 1350, y2: 740, type: 'SOLID' },
+      { x1: 1350, y1: 740, x2: 1350, y2: 840, type: 'DOOR', doorId: 'door-l6-beta', isOpen: false },
+      { x1: 1350, y1: 840, x2: 1350, y2: 1050, type: 'SOLID' },
+
+      // Cryo Sanctum Vault (top right)
+      { x1: 1300, y1: 100, x2: 1750, y2: 100, type: 'SOLID' },
+      { x1: 1300, y1: 100, x2: 1300, y2: 450, type: 'SOLID' },
+      { x1: 1300, y1: 450, x2: 1480, y2: 450, type: 'SOLID' },
+      { x1: 1480, y1: 450, x2: 1560, y2: 450, type: 'DOOR', doorId: 'door-l6-sanctum', isOpen: false },
+      { x1: 1560, y1: 450, x2: 1750, y2: 450, type: 'SOLID' },
+
+      // North extraction wing
+      { x1: 50, y1: 450, x2: 1300, y2: 450, type: 'SOLID' },
+      { x1: 320, y1: 50, x2: 320, y2: 450, type: 'SOLID' },
+      { x1: 200, y1: 450, x2: 320, y2: 450, type: 'DOOR', doorId: 'door-l6-extract', isOpen: true }
+    ],
+    guards: [
+      {
+        id: 'g6-01',
+        x: 580,
+        y: 850,
+        angle: 0,
+        speed: 1.25,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 380, y: 850 },
+          { x: 780, y: 850 },
+          { x: 780, y: 980 },
+          { x: 380, y: 980 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 300,
+        fov: Math.PI * 0.44
+      },
+      {
+        id: 'g6-02',
+        x: 1050,
+        y: 840,
+        angle: -Math.PI * 0.5,
         speed: 1.3,
         state: 'PATROL',
         patrolPath: [
-          { x: 300, y: 950 },
-          { x: 750, y: 950 },
-          { x: 750, y: 800 },
-          { x: 300, y: 950 }
+          { x: 1050, y: 960 },
+          { x: 1050, y: 680 },
+          { x: 1250, y: 680 },
+          { x: 1250, y: 960 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 300,
+        fov: Math.PI * 0.44
+      },
+      {
+        id: 'g6-03',
+        x: 1540,
+        y: 750,
+        angle: Math.PI,
+        speed: 1.25,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 1540, y: 750 },
+          { x: 1400, y: 750 },
+          { x: 1400, y: 950 },
+          { x: 1680, y: 950 }
         ],
         currentPathIndex: 0,
         alertLevel: 0,
@@ -516,847 +1360,984 @@ export const MISSIONS: Mission[] = [
         fov: Math.PI * 0.44
       },
       {
-        id: 'orion-g2',
-        x: 900,
-        y: 500,
-        angle: Math.PI * 0.5,
-        speed: 1.3,
+        id: 'g6-04',
+        x: 1100,
+        y: 350,
+        angle: 0,
+        speed: 1.2,
         state: 'PATROL',
         patrolPath: [
-          { x: 900, y: 500 },
-          { x: 1350, y: 500 },
-          { x: 1350, y: 300 },
-          { x: 900, y: 300 }
+          { x: 900, y: 350 },
+          { x: 1250, y: 350 },
+          { x: 1250, y: 420 },
+          { x: 900, y: 420 }
         ],
         currentPathIndex: 0,
         alertLevel: 0,
         sightRadius: 300,
-        fov: Math.PI * 0.45
-      },
-      {
-        id: 'orion-g3',
-        x: 1300,
-        y: 900,
-        angle: Math.PI,
-        speed: 1.2,
-        state: 'PATROL',
-        patrolPath: [
-          { x: 1200, y: 900 },
-          { x: 1600, y: 900 },
-          { x: 1600, y: 1050 },
-          { x: 1200, y: 1050 }
-        ],
-        currentPathIndex: 0,
-        alertLevel: 0,
-        sightRadius: 320,
-        fov: Math.PI * 0.45
-      },
-      {
-        id: 'orion-g4',
-        x: 1550,
-        y: 480,
-        angle: -Math.PI * 0.5,
-        speed: 1.0,
-        state: 'PATROL',
-        patrolPath: [
-          { x: 1550, y: 550 },
-          { x: 1700, y: 550 },
-          { x: 1550, y: 480 }
-        ],
-        currentPathIndex: 0,
-        alertLevel: 0,
-        sightRadius: 330,
-        fov: Math.PI * 0.4
+        fov: Math.PI * 0.42
       }
     ],
     cameras: [
       {
-        id: 'orion-cam-01',
-        x: 260,
-        y: 860,
-        angle: 0.5,
-        baseAngle: 0.5,
-        sweepAngle: 1.1,
-        sweepSpeed: 0.7,
+        id: 'cam-l6-01',
+        x: 830,
+        y: 570,
+        angle: 1.4,
+        baseAngle: 1.4,
+        sweepAngle: 1.3,
+        sweepSpeed: 0.9,
         range: 330,
-        fov: Math.PI * 0.36,
-        isHacked: false,
-        isLooping: false,
-        isPowerOff: false
-      },
-      {
-        id: 'orion-cam-02',
-        x: 1020,
-        y: 460,
-        angle: 1.9,
-        baseAngle: 1.9,
-        sweepAngle: 1.2,
-        sweepSpeed: 0.65,
-        range: 350,
         fov: Math.PI * 0.38,
         isHacked: false,
         isLooping: false,
         isPowerOff: false
       },
       {
-        id: 'orion-cam-03',
-        x: 1460,
-        y: 390,
-        angle: -2.3,
-        baseAngle: -2.3,
-        sweepAngle: 0.8,
+        id: 'cam-l6-02',
+        x: 1330,
+        y: 470,
+        angle: 2.2,
+        baseAngle: 2.2,
+        sweepAngle: 1.3,
         sweepSpeed: 0.9,
         range: 340,
-        fov: Math.PI * 0.35,
+        fov: Math.PI * 0.4,
         isHacked: false,
         isLooping: false,
         isPowerOff: false
       }
     ],
-    drones: [
-      {
-        id: 'drone-orion-01',
-        x: 1100,
-        y: 250,
-        angle: 0,
-        speed: 1.6,
-        patrolPath: [
-          { x: 750, y: 250 },
-          { x: 1200, y: 250 },
-          { x: 1200, y: 350 },
-          { x: 750, y: 350 }
-        ],
-        currentPathIndex: 0,
-        range: 220,
-        isHacked: false
-      }
-    ],
-    lasers: [
-      {
-        id: 'laser-orion-01',
-        x1: 600,
-        y1: 850,
-        x2: 700,
-        y2: 850,
-        isActive: true,
-        cycleInterval: 3500,
-        cycleOffset: 500,
-        isHacked: false
-      },
-      {
-        id: 'laser-orion-02',
-        x1: 1450,
-        y1: 250,
-        x2: 1450,
-        y2: 380,
-        isActive: true,
-        cycleInterval: 4500,
-        cycleOffset: 0,
-        isHacked: false
-      }
-    ],
+    drones: [],
+    lasers: [],
     terminals: [
       {
-        id: 'term-orion-sec',
-        x: 1250,
-        y: 800,
-        type: 'SIGNAL',
-        name: 'SECURITY DESK HUB',
-        isHacked: false,
-        disablesCameraId: 'orion-cam-01',
-        description: 'Synchronize optical frequency to isolate surveillance node 01.'
-      },
-      {
-        id: 'term-orion-bypass',
-        x: 550,
-        y: 500,
-        type: 'OVERRIDE',
-        name: 'POWER DISTRIBUTION MATRIX',
-        isHacked: false,
-        disablesLaserId: 'laser-orion-01',
-        description: 'Balance transformer frequency to trip laser perimeter breaker.'
-      },
-      {
-        id: 'term-orion-vault',
-        x: 1380,
-        y: 350,
+        id: 'term-l6-alpha',
+        x: 750,
+        y: 720,
         type: 'CODE',
-        name: 'CRYO VAULT LOCK REGISTRY',
+        name: 'SECTOR ALPHA CIPHER BUS',
         isHacked: false,
-        unlocksDoorId: 'orion-vault-gate',
-        disablesLaserId: 'laser-orion-02',
-        description: 'Bypass cryogenic lock registers to open primary vault blast doors.'
+        unlocksDoorId: 'door-l6-alpha',
+        description: 'Reconstruct cryptographic hash to release Sector Alpha security door.'
+      },
+      {
+        id: 'term-l6-beta',
+        x: 1200,
+        y: 720,
+        type: 'SIGNAL',
+        name: 'SECTOR BETA RESONANCE TERMINAL',
+        isHacked: false,
+        unlocksDoorId: 'door-l6-beta',
+        description: 'Harmonize RF frequencies to unlock Sector Beta cryogenic gateway.'
+      },
+      {
+        id: 'term-l6-sanctum',
+        x: 1250,
+        y: 380,
+        type: 'OVERRIDE',
+        name: 'CHRONOS MASTER ARCHIVE VAULT',
+        isHacked: false,
+        unlocksDoorId: 'door-l6-sanctum',
+        description: 'Disengage deep cryogenic seal guarding Project Ghost archives.'
       }
     ]
   },
+
+  // =========================================================================
+  // ACT III — THE GHOST PROTOCOL
+  // =========================================================================
+
+  // -------------------------------------------------------------------------
+  // LEVEL 07 — REDLINE
+  // -------------------------------------------------------------------------
   {
-    id: 'op-03-apex-protocol',
-    sectorId: 'sector-03',
-    sectorName: 'SECTOR 03 · INDUSTRIAL CORE',
-    operationCode: 'OPERATION 03',
-    title: 'APEX PROTOCOL',
-    facilityName: 'KUROSHIO ORBITAL CITADEL',
-    targetName: 'SOVEREIGN AI CORE',
+    id: 'op-07-redline',
+    actNumber: 3,
+    actTitle: 'THE GHOST PROTOCOL',
+    levelNumber: 7,
+    environmentType: 'High-security research laboratory',
+    sectorId: 'sector-06',
+    sectorName: 'SECTOR 06 · BIOMECH LABS',
+    operationCode: 'OP // 07',
+    title: 'REDLINE',
+    facilityName: 'CYBERDYNAMICS ADVANCED LABS',
+    targetName: 'EXPERIMENTAL CLOAKING MATRIX',
     difficulty: 'GHOST',
-    basePayout: 68000,
+    basePayout: 90000,
     risk: 'HIGH',
-    securityRating: 9.1,
-    briefing: 'Kuroshio Heavy Industries is secretly training an untethered sovereign military AI. Extraction must occur before their scheduled memory wipe in 15 minutes. Heavy drone patrol coverage, triple-locked neural server chamber, and biometric laser walls.',
+    securityRating: 7.0,
+    briefing: 'Cyberdynamics is building next-generation military invisibility rigs. The facility is protected by synchronized mil-spec patrols and automated laser trip-grids. Avoid tripping the lasers, override the cleanroom containment terminal, and extract the experimental matrix.',
     secondaryObjectives: [
-      'Disable both patrol drones with EMP or terminal override',
-      'Maintain undetected signature status throughout',
-      'Zero alarms triggered'
+      'Bypass all cleanroom lasers without touching beams',
+      'Neutralize zero research security officers',
+      'Secure experimental telemetry file'
     ],
     recommendedEquipment: [
       'OPTICAL CLOAK',
-      'EMP PULSE',
-      'SIGNAL JAMMER',
-      'LOCK DECODER'
+      'GRAPPLE LINE',
+      'NEURAL DECODER'
     ],
+    entryRoutes: [
+      'Vector Alpha: Nitrogen ventilation shaft',
+      'Vector Bravo: Decontamination chamber airlock'
+    ],
+    unlockReward: 'MIL-SPEC TACTICAL GEAR & ELITE CONTRACTS',
+    estimatedDuration: '06:00',
     intel: {
-      guards: 5,
-      cameras: 4,
-      drones: 2,
-      securityTier: 'MIL-SPEC CITADEL PROTOCOL'
+      guards: 4,
+      cameras: 3,
+      drones: 0,
+      securityTier: 'TIER 4 MIL-SPEC GUARDS'
     },
-    mapWidth: 2000,
-    mapHeight: 1300,
-    playerStart: { x: 120, y: 1100 },
+    mapWidth: 1800,
+    mapHeight: 1100,
+    playerStart: { x: 140, y: 900 },
     vault: {
-      x: 1800,
-      y: 200,
-      width: 160,
-      height: 160,
-      targetName: 'SOVEREIGN AI CORE',
+      x: 1500,
+      y: 240,
+      width: 140,
+      height: 140,
+      targetName: 'EXPERIMENTAL CLOAKING MATRIX',
       isCracked: false,
-      securityLayers: 4
+      securityLayers: 3
     },
     extraction: {
-      x: 120,
-      y: 1100,
-      radius: 90,
-      name: 'UNDERGROUND FREIGHT CONDUIT'
+      x: 160,
+      y: 200,
+      radius: 80,
+      name: 'NITROGEN VENT SHAFT AERODYNE'
     },
+    lights: [
+      { id: 'l7-airlock', x: 220, y: 900, radius: 210, isOn: true, color: '#fef08a' },
+      { id: 'l7-lab1', x: 720, y: 750, radius: 260, isOn: true, color: '#e0f2fe' },
+      { id: 'l7-lab2', x: 1180, y: 750, radius: 250, isOn: true, color: '#f8fafc' },
+      { id: 'l7-stasis', x: 1520, y: 280, radius: 240, isOn: true, color: '#38bdf8' },
+      { id: 'l7-extract', x: 160, y: 200, radius: 200, isOn: true, color: '#22d3ee' }
+    ],
+    envObjects: [
+      {
+        id: 'env-l7-switch',
+        x: 950,
+        y: 650,
+        width: 24,
+        height: 24,
+        type: 'LIGHT_SWITCH',
+        name: 'LAB 1 UV DECONTAMINATION LIGHTS',
+        isInteracted: false,
+        targetId: 'l7-lab1'
+      },
+      {
+        id: 'env-l7-vent',
+        x: 1320,
+        y: 520,
+        width: 32,
+        height: 32,
+        type: 'MAINTENANCE_VENT',
+        name: 'STASIS LAB CEILING FLUE',
+        isInteracted: false,
+        targetId: 'door-l7-stasis'
+      }
+    ],
     walls: [
-      { x1: 50, y1: 50, x2: 1950, y2: 50, type: 'SOLID' },
-      { x1: 1950, y1: 50, x2: 1950, y2: 1250, type: 'SOLID' },
-      { x1: 1950, y1: 1250, x2: 50, y2: 1250, type: 'SOLID' },
-      { x1: 50, y1: 1250, x2: 50, y2: 50, type: 'SOLID' },
+      // Outer
+      { x1: 50, y1: 50, x2: 1750, y2: 50, type: 'SOLID' },
+      { x1: 1750, y1: 50, x2: 1750, y2: 1050, type: 'SOLID' },
+      { x1: 1750, y1: 1050, x2: 50, y2: 1050, type: 'SOLID' },
+      { x1: 50, y1: 1050, x2: 50, y2: 50, type: 'SOLID' },
 
-      // Perimeter wall
-      { x1: 300, y1: 900, x2: 300, y2: 1250, type: 'SOLID' },
-      { x1: 300, y1: 900, x2: 800, y2: 900, type: 'SOLID' },
-      { x1: 900, y1: 900, x2: 1600, y2: 900, type: 'SOLID' },
+      // Decon entry
+      { x1: 300, y1: 750, x2: 300, y2: 1050, type: 'SOLID' },
+      { x1: 50, y1: 750, x2: 200, y2: 750, type: 'SOLID' },
 
-      // Factory bay divider
-      { x1: 550, y1: 450, x2: 550, y2: 900, type: 'SOLID' },
-      { x1: 550, y1: 450, x2: 1100, y2: 450, type: 'SOLID' },
-      { x1: 1200, y1: 450, x2: 1650, y2: 450, type: 'SOLID' },
+      // Cleanroom corridor 1
+      { x1: 300, y1: 750, x2: 750, y2: 750, type: 'SOLID' },
+      { x1: 850, y1: 750, x2: 1400, y2: 750, type: 'SOLID' },
 
-      // Vault high-security bunker
-      { x1: 1650, y1: 50, x2: 1650, y2: 450, type: 'SOLID' },
-      { x1: 1650, y1: 450, x2: 1780, y2: 450, type: 'SOLID' },
-      { x1: 1780, y1: 450, x2: 1880, y2: 450, type: 'DOOR', doorId: 'kuroshio-core-gate', isOpen: false },
-      { x1: 1880, y1: 450, x2: 1950, y2: 450, type: 'SOLID' },
+      // Laser chamber partition
+      { x1: 850, y1: 550, x2: 850, y2: 750, type: 'GLASS' },
+      { x1: 850, y1: 550, x2: 1400, y2: 550, type: 'SOLID' },
+      { x1: 1400, y1: 550, x2: 1400, y2: 720, type: 'SOLID' },
+      { x1: 1400, y1: 720, x2: 1400, y2: 820, type: 'DOOR', doorId: 'door-l7-cleanroom', isOpen: false },
+      { x1: 1400, y1: 820, x2: 1400, y2: 1050, type: 'SOLID' },
 
-      // Central server arrays
-      { x1: 750, y1: 600, x2: 900, y2: 600, type: 'SOLID' },
-      { x1: 900, y1: 600, x2: 900, y2: 750, type: 'SOLID' },
-      { x1: 900, y1: 750, x2: 750, y2: 750, type: 'SOLID' },
-      { x1: 750, y1: 750, x2: 750, y2: 600, type: 'SOLID' },
+      // Stasis Vault Room (top right)
+      { x1: 1280, y1: 100, x2: 1750, y2: 100, type: 'SOLID' },
+      { x1: 1280, y1: 100, x2: 1280, y2: 450, type: 'SOLID' },
+      { x1: 1280, y1: 450, x2: 1450, y2: 450, type: 'SOLID' },
+      { x1: 1450, y1: 450, x2: 1550, y2: 450, type: 'DOOR', doorId: 'door-l7-stasis', isOpen: false },
+      { x1: 1550, y1: 450, x2: 1750, y2: 450, type: 'SOLID' },
 
-      { x1: 1150, y1: 600, x2: 1300, y2: 600, type: 'SOLID' },
-      { x1: 1300, y1: 600, x2: 1300, y2: 750, type: 'SOLID' },
-      { x1: 1300, y1: 750, x2: 1150, y2: 750, type: 'SOLID' },
-      { x1: 1150, y1: 750, x2: 1150, y2: 600, type: 'SOLID' },
-
-      { x1: 1000, y1: 150, x2: 1200, y2: 150, type: 'SOLID' },
-      { x1: 1200, y1: 150, x2: 1200, y2: 320, type: 'SOLID' },
-      { x1: 1200, y1: 320, x2: 1000, y2: 320, type: 'SOLID' },
-      { x1: 1000, y1: 320, x2: 1000, y2: 150, type: 'SOLID' }
+      // North extraction wing
+      { x1: 50, y1: 450, x2: 1280, y2: 450, type: 'SOLID' },
+      { x1: 340, y1: 50, x2: 340, y2: 450, type: 'SOLID' },
+      { x1: 220, y1: 450, x2: 340, y2: 450, type: 'DOOR', doorId: 'door-l7-vent', isOpen: true }
     ],
     guards: [
       {
-        id: 'k-g1',
-        x: 450,
-        y: 1050,
+        id: 'g7-01',
+        x: 550,
+        y: 850,
         angle: 0,
         speed: 1.3,
         state: 'PATROL',
         patrolPath: [
-          { x: 380, y: 1050 },
-          { x: 820, y: 1050 },
-          { x: 820, y: 950 },
-          { x: 380, y: 1050 }
+          { x: 380, y: 850 },
+          { x: 750, y: 850 },
+          { x: 750, y: 980 },
+          { x: 380, y: 980 }
         ],
         currentPathIndex: 0,
         alertLevel: 0,
-        sightRadius: 320,
+        sightRadius: 310,
         fov: Math.PI * 0.45
       },
       {
-        id: 'k-g2',
-        x: 1000,
-        y: 800,
-        angle: 1.5,
+        id: 'g7-02',
+        x: 1100,
+        y: 840,
+        angle: -Math.PI * 0.5,
+        speed: 1.3,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 1100, y: 950 },
+          { x: 1100, y: 680 },
+          { x: 1280, y: 680 },
+          { x: 1280, y: 950 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 310,
+        fov: Math.PI * 0.45
+      },
+      {
+        id: 'g7-03',
+        x: 1550,
+        y: 720,
+        angle: Math.PI,
+        speed: 1.3,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 1550, y: 720 },
+          { x: 1420, y: 720 },
+          { x: 1420, y: 950 },
+          { x: 1680, y: 950 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 310,
+        fov: Math.PI * 0.45
+      },
+      {
+        id: 'g7-04',
+        x: 1050,
+        y: 360,
+        angle: 0,
         speed: 1.25,
         state: 'PATROL',
         patrolPath: [
-          { x: 1000, y: 800 },
-          { x: 1500, y: 800 },
-          { x: 1500, y: 550 },
-          { x: 1000, y: 550 }
+          { x: 850, y: 360 },
+          { x: 1200, y: 360 },
+          { x: 1200, y: 420 },
+          { x: 850, y: 420 }
         ],
         currentPathIndex: 0,
         alertLevel: 0,
-        sightRadius: 320,
-        fov: Math.PI * 0.45
-      },
-      {
-        id: 'k-g3',
-        x: 750,
-        y: 350,
-        angle: 0,
-        speed: 1.3,
-        state: 'PATROL',
-        patrolPath: [
-          { x: 650, y: 350 },
-          { x: 950, y: 350 },
-          { x: 950, y: 200 },
-          { x: 650, y: 200 }
-        ],
-        currentPathIndex: 0,
-        alertLevel: 0,
-        sightRadius: 330,
-        fov: Math.PI * 0.45
-      },
-      {
-        id: 'k-g4',
-        x: 1400,
-        y: 350,
-        angle: -1.2,
-        speed: 1.35,
-        state: 'PATROL',
-        patrolPath: [
-          { x: 1350, y: 350 },
-          { x: 1600, y: 350 },
-          { x: 1600, y: 150 },
-          { x: 1350, y: 150 }
-        ],
-        currentPathIndex: 0,
-        alertLevel: 0,
-        sightRadius: 330,
-        fov: Math.PI * 0.45
-      },
-      {
-        id: 'k-g5',
-        x: 1750,
-        y: 550,
-        angle: -Math.PI * 0.5,
-        speed: 1.0,
-        state: 'PATROL',
-        patrolPath: [
-          { x: 1720, y: 550 },
-          { x: 1900, y: 550 },
-          { x: 1720, y: 550 }
-        ],
-        currentPathIndex: 0,
-        alertLevel: 0,
-        sightRadius: 340,
-        fov: Math.PI * 0.4
+        sightRadius: 310,
+        fov: Math.PI * 0.42
       }
     ],
     cameras: [
       {
-        id: 'k-cam-01',
-        x: 310,
-        y: 910,
-        angle: 0.6,
-        baseAngle: 0.6,
+        id: 'cam-l7-01',
+        x: 820,
+        y: 570,
+        angle: 1.3,
+        baseAngle: 1.3,
+        sweepAngle: 1.3,
+        sweepSpeed: 0.95,
+        range: 340,
+        fov: Math.PI * 0.4,
+        isHacked: false,
+        isLooping: false,
+        isPowerOff: false
+      },
+      {
+        id: 'cam-l7-02',
+        x: 1380,
+        y: 470,
+        angle: 2.2,
+        baseAngle: 2.2,
+        sweepAngle: 1.3,
+        sweepSpeed: 0.95,
+        range: 340,
+        fov: Math.PI * 0.4,
+        isHacked: false,
+        isLooping: false,
+        isPowerOff: false
+      },
+      {
+        id: 'cam-l7-03',
+        x: 1260,
+        y: 120,
+        angle: 1.8,
+        baseAngle: 1.8,
         sweepAngle: 1.2,
-        sweepSpeed: 0.75,
-        range: 350,
+        sweepSpeed: 0.9,
+        range: 320,
         fov: Math.PI * 0.38,
         isHacked: false,
         isLooping: false,
         isPowerOff: false
-      },
-      {
-        id: 'k-cam-02',
-        x: 1190,
-        y: 460,
-        angle: 2.1,
-        baseAngle: 2.1,
-        sweepAngle: 1.0,
-        sweepSpeed: 0.8,
-        range: 360,
-        fov: Math.PI * 0.36,
-        isHacked: false,
-        isLooping: false,
-        isPowerOff: false
-      },
-      {
-        id: 'k-cam-03',
-        x: 1660,
-        y: 440,
-        angle: -2.4,
-        baseAngle: -2.4,
-        sweepAngle: 0.9,
-        sweepSpeed: 0.85,
-        range: 360,
-        fov: Math.PI * 0.35,
-        isHacked: false,
-        isLooping: false,
-        isPowerOff: false
-      },
-      {
-        id: 'k-cam-04',
-        x: 1640,
-        y: 100,
-        angle: 2.8,
-        baseAngle: 2.8,
-        sweepAngle: 0.8,
-        sweepSpeed: 0.7,
-        range: 340,
-        fov: Math.PI * 0.35,
-        isHacked: false,
-        isLooping: false,
-        isPowerOff: false
       }
     ],
-    drones: [
-      {
-        id: 'drone-k-01',
-        x: 700,
-        y: 750,
-        angle: 0,
-        speed: 1.8,
-        patrolPath: [
-          { x: 600, y: 750 },
-          { x: 1050, y: 750 },
-          { x: 1050, y: 550 },
-          { x: 600, y: 550 }
-        ],
-        currentPathIndex: 0,
-        range: 240,
-        isHacked: false
-      },
-      {
-        id: 'drone-k-02',
-        x: 1400,
-        y: 250,
-        angle: 1.0,
-        speed: 1.9,
-        patrolPath: [
-          { x: 1300, y: 250 },
-          { x: 1600, y: 250 },
-          { x: 1600, y: 380 },
-          { x: 1300, y: 380 }
-        ],
-        currentPathIndex: 0,
-        range: 240,
-        isHacked: false
-      }
-    ],
+    drones: [],
     lasers: [
       {
-        id: 'laser-k-01',
-        x1: 800,
-        y1: 900,
-        x2: 900,
-        y2: 900,
+        id: 'laser-l7-cleanroom',
+        x1: 750,
+        y1: 750,
+        x2: 750,
+        y2: 880,
         isActive: true,
         cycleInterval: 3000,
-        cycleOffset: 0,
-        isHacked: false
-      },
-      {
-        id: 'laser-k-02',
-        x1: 1100,
-        y1: 450,
-        x2: 1200,
-        y2: 450,
-        isActive: true,
-        cycleInterval: 3500,
-        cycleOffset: 1000,
-        isHacked: false
+        cycleOffset: 0
       }
     ],
     terminals: [
       {
-        id: 'term-k-substation',
-        x: 400,
-        y: 650,
-        type: 'SIGNAL',
-        name: 'GRID SUBSTATION A-4',
+        id: 'term-l7-laser',
+        x: 700,
+        y: 710,
+        type: 'OVERRIDE',
+        name: 'CLEANROOM LASER BUS',
         isHacked: false,
-        disablesLaserId: 'laser-k-01',
-        description: 'Realign optic circuit lines to discharge perimeter laser 01.'
+        disablesLaserId: 'laser-l7-cleanroom',
+        description: 'Disable automated biometric laser sensors.'
       },
       {
-        id: 'term-k-network',
-        x: 1050,
-        y: 680,
+        id: 'term-l7-stasis',
+        x: 1200,
+        y: 600,
         type: 'NETWORK',
-        name: 'INTERNAL SURVEILLANCE ROUTER',
+        name: 'STASIS LAB LOCKDOWN TERMINAL',
         isHacked: false,
-        disablesCameraId: 'k-cam-02',
-        description: 'Infiltrate network routing nodes to shut down central hallway camera.'
-      },
-      {
-        id: 'term-k-core-auth',
-        x: 1500,
-        y: 200,
-        type: 'CODE',
-        name: 'AI CORE BIOMETRIC OVERRIDE',
-        isHacked: false,
-        unlocksDoorId: 'kuroshio-core-gate',
-        disablesLaserId: 'laser-k-02',
-        description: 'Bypass sovereign neural cryptography to release AI chamber blast door.'
+        unlocksDoorId: 'door-l7-stasis',
+        description: 'Disengage hermetic seal on prototype containment room.'
       }
     ]
   },
+
+  // -------------------------------------------------------------------------
+  // LEVEL 08 — NO WITNESSES
+  // -------------------------------------------------------------------------
   {
-    id: 'op-04-ghost-protocol',
-    sectorId: 'sector-05',
-    sectorName: 'SECTOR 05 · BLACK DISTRICT',
-    operationCode: 'OPERATION 04',
-    title: 'GHOST PROTOCOL',
-    facilityName: 'BLACK DISTRICT ARCHIVE',
-    targetName: 'GHOSTNET BLACK BOX',
+    id: 'op-08-no-witnesses',
+    actNumber: 3,
+    actTitle: 'THE GHOST PROTOCOL',
+    levelNumber: 8,
+    environmentType: 'Corporate tower under lockdown',
+    sectorId: 'sector-07',
+    sectorName: 'SECTOR 07 · LOCKDOWN SPIRE',
+    operationCode: 'OP // 08',
+    title: 'NO WITNESSES',
+    facilityName: 'KUROSHIO HEAVY CITADEL - 88TH FLOOR',
+    targetName: 'COMMAND LOCKDOWN OVERRIDE',
     difficulty: 'NIGHTMARE',
-    basePayout: 95000,
+    basePayout: 110000,
     risk: 'EXTREME',
-    securityRating: 9.8,
-    briefing: 'Classified: Vera has pinpointed the repository holding the decommissioned black boxes of previous Ghost operatives. Director Kade has fortified the site with black-budget contractors and synchronized biometric tripwires. Extract the truth.',
+    securityRating: 8.5,
+    briefing: 'Kuroshio Citadel has declared an internal lockdown. Armed shock teams patrol every junction, red emergency beacons flash, and automated kill-lasers block key choke points. Navigate through service elevators and maintenance shafts to crack the command terminal.',
     secondaryObjectives: [
-      'Extract the Black Box without causing a single security alarm',
-      'Zero casualties / zero guard engagements',
-      'Complete extraction within 7 minutes'
+      'Bypass all corporate lockdown barriers without detection',
+      'Neutralize zero shock team guards',
+      'Complete mission in under 5 minutes'
     ],
     recommendedEquipment: [
       'OPTICAL CLOAK',
-      'EMP PULSE',
       'SIGNAL JAMMER',
-      'SILENT BOOTS'
+      'NEURAL DECODER'
     ],
+    entryRoutes: [
+      'Vector Alpha: Exterior window washer gantry',
+      'Vector Bravo: Elevator counterweight shaft'
+    ],
+    unlockReward: 'ELITE PROTOCOL LOADOUT & FINAL BRIEFING',
+    estimatedDuration: '06:30',
     intel: {
-      guards: 6,
-      cameras: 4,
-      drones: 2,
-      securityTier: 'BLACK OPS COVERT COMPLEX'
+      guards: 5,
+      cameras: 3,
+      drones: 0,
+      securityTier: 'TIER 5 KUROSHIO SHOCK TEAM'
     },
-    mapWidth: 2100,
-    mapHeight: 1400,
-    playerStart: { x: 120, y: 1200 },
+    mapWidth: 1800,
+    mapHeight: 1100,
+    playerStart: { x: 140, y: 920 },
     vault: {
-      x: 1900,
-      y: 220,
-      width: 160,
-      height: 160,
-      targetName: 'GHOSTNET BLACK BOX',
+      x: 1540,
+      y: 200,
+      width: 140,
+      height: 140,
+      targetName: 'COMMAND LOCKDOWN OVERRIDE',
       isCracked: false,
-      securityLayers: 4
+      securityLayers: 3
     },
     extraction: {
-      x: 120,
-      y: 1200,
-      radius: 90,
-      name: 'DECOMMISSIONED SUBWAY VENT'
+      x: 140,
+      y: 160,
+      radius: 80,
+      name: 'WEST HELIPAD SKYDUCT'
     },
+    lights: [
+      { id: 'l8-entry', x: 220, y: 920, radius: 210, isOn: true, color: '#ef4444', flicker: true },
+      { id: 'l8-lobby', x: 750, y: 780, radius: 260, isOn: true, color: '#ef4444', flicker: true },
+      { id: 'l8-security', x: 1200, y: 780, radius: 250, isOn: true, color: '#f8fafc' },
+      { id: 'l8-command', x: 1550, y: 260, radius: 240, isOn: true, color: '#38bdf8' },
+      { id: 'l8-extract', x: 140, y: 160, radius: 200, isOn: true, color: '#22d3ee' }
+    ],
+    envObjects: [
+      {
+        id: 'env-l8-switch',
+        x: 900,
+        y: 680,
+        width: 24,
+        height: 24,
+        type: 'LIGHT_SWITCH',
+        name: 'LOCKDOWN STROBE CONTROLLER',
+        isInteracted: false,
+        targetId: 'l8-lobby'
+      },
+      {
+        id: 'env-l8-vent',
+        x: 1300,
+        y: 500,
+        width: 32,
+        height: 32,
+        type: 'MAINTENANCE_VENT',
+        name: 'COMMAND SPIRE ELEVATOR SHAFT',
+        isInteracted: false,
+        targetId: 'door-l8-command'
+      }
+    ],
     walls: [
-      { x1: 50, y1: 50, x2: 2050, y2: 50, type: 'SOLID' },
-      { x1: 2050, y1: 50, x2: 2050, y2: 1350, type: 'SOLID' },
-      { x1: 2050, y1: 1350, x2: 50, y2: 1350, type: 'SOLID' },
-      { x1: 50, y1: 1350, x2: 50, y2: 50, type: 'SOLID' },
+      // Outer
+      { x1: 50, y1: 50, x2: 1750, y2: 50, type: 'SOLID' },
+      { x1: 1750, y1: 50, x2: 1750, y2: 1050, type: 'SOLID' },
+      { x1: 1750, y1: 1050, x2: 50, y2: 1050, type: 'SOLID' },
+      { x1: 50, y1: 1050, x2: 50, y2: 50, type: 'SOLID' },
 
-      // Checkpoint 1
-      { x1: 350, y1: 950, x2: 350, y2: 1350, type: 'SOLID' },
-      { x1: 350, y1: 950, x2: 850, y2: 950, type: 'SOLID' },
-      { x1: 950, y1: 950, x2: 1700, y2: 950, type: 'SOLID' },
+      // Entry Gantry
+      { x1: 300, y1: 750, x2: 300, y2: 1050, type: 'SOLID' },
+      { x1: 50, y1: 750, x2: 200, y2: 750, type: 'SOLID' },
 
-      // Bunker partition
-      { x1: 600, y1: 500, x2: 600, y2: 950, type: 'SOLID' },
-      { x1: 600, y1: 500, x2: 1200, y2: 500, type: 'SOLID' },
-      { x1: 1300, y1: 500, x2: 1750, y2: 500, type: 'SOLID' },
+      // Main Lockdown Corridor
+      { x1: 300, y1: 750, x2: 800, y2: 750, type: 'SOLID' },
+      { x1: 900, y1: 750, x2: 1400, y2: 750, type: 'SOLID' },
 
-      // Black Vault Chamber
-      { x1: 1750, y1: 50, x2: 1750, y2: 500, type: 'SOLID' },
-      { x1: 1750, y1: 500, x2: 1880, y2: 500, type: 'SOLID' },
-      { x1: 1880, y1: 500, x2: 1980, y2: 500, type: 'DOOR', doorId: 'blackbox-vault-door', isOpen: false },
-      { x1: 1980, y1: 500, x2: 2050, y2: 500, type: 'SOLID' },
+      // Security Office Wing
+      { x1: 850, y1: 520, x2: 850, y2: 750, type: 'SOLID' },
+      { x1: 850, y1: 520, x2: 1400, y2: 520, type: 'SOLID' },
+      { x1: 1400, y1: 520, x2: 1400, y2: 720, type: 'SOLID' },
+      { x1: 1400, y1: 720, x2: 1400, y2: 820, type: 'DOOR', doorId: 'door-l8-security', isOpen: false },
+      { x1: 1400, y1: 820, x2: 1400, y2: 1050, type: 'SOLID' },
 
-      // Pillar clusters
-      { x1: 850, y1: 650, x2: 1000, y2: 650, type: 'SOLID' },
-      { x1: 1000, y1: 650, x2: 1000, y2: 800, type: 'SOLID' },
-      { x1: 1000, y1: 800, x2: 850, y2: 800, type: 'SOLID' },
-      { x1: 850, y1: 800, x2: 850, y2: 650, type: 'SOLID' },
+      // Command Chamber Vault (top right)
+      { x1: 1300, y1: 100, x2: 1750, y2: 100, type: 'SOLID' },
+      { x1: 1300, y1: 100, x2: 1300, y2: 440, type: 'SOLID' },
+      { x1: 1300, y1: 440, x2: 1480, y2: 440, type: 'SOLID' },
+      { x1: 1480, y1: 440, x2: 1560, y2: 440, type: 'DOOR', doorId: 'door-l8-command', isOpen: false },
+      { x1: 1560, y1: 440, x2: 1750, y2: 440, type: 'SOLID' },
 
-      { x1: 1250, y1: 650, x2: 1400, y2: 650, type: 'SOLID' },
-      { x1: 1400, y1: 650, x2: 1400, y2: 800, type: 'SOLID' },
-      { x1: 1400, y1: 800, x2: 1250, y2: 800, type: 'SOLID' },
-      { x1: 1250, y1: 800, x2: 1250, y2: 650, type: 'SOLID' },
-
-      { x1: 1100, y1: 200, x2: 1350, y2: 200, type: 'SOLID' },
-      { x1: 1350, y1: 200, x2: 1350, y2: 360, type: 'SOLID' },
-      { x1: 1350, y1: 360, x2: 1100, y2: 360, type: 'SOLID' },
-      { x1: 1100, y1: 360, x2: 1100, y2: 200, type: 'SOLID' }
+      // North Helipad wing
+      { x1: 50, y1: 440, x2: 1300, y2: 440, type: 'SOLID' },
+      { x1: 320, y1: 50, x2: 320, y2: 440, type: 'SOLID' },
+      { x1: 200, y1: 440, x2: 320, y2: 440, type: 'DOOR', doorId: 'door-l8-helipad', isOpen: true }
     ],
     guards: [
       {
-        id: 'bg-1',
-        x: 500,
-        y: 1150,
+        id: 'g8-01',
+        x: 550,
+        y: 860,
         angle: 0,
         speed: 1.35,
         state: 'PATROL',
         patrolPath: [
-          { x: 420, y: 1150 },
-          { x: 880, y: 1150 },
-          { x: 880, y: 1020 },
-          { x: 420, y: 1150 }
+          { x: 380, y: 860 },
+          { x: 780, y: 860 },
+          { x: 780, y: 980 },
+          { x: 380, y: 980 }
         ],
         currentPathIndex: 0,
         alertLevel: 0,
-        sightRadius: 330,
-        fov: Math.PI * 0.45
+        sightRadius: 310,
+        fov: Math.PI * 0.46
       },
       {
-        id: 'bg-2',
+        id: 'g8-02',
         x: 1100,
-        y: 880,
-        angle: 1.5,
+        y: 850,
+        angle: -Math.PI * 0.5,
+        speed: 1.35,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 1100, y: 960 },
+          { x: 1100, y: 680 },
+          { x: 1300, y: 680 },
+          { x: 1300, y: 960 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 310,
+        fov: Math.PI * 0.46
+      },
+      {
+        id: 'g8-03',
+        x: 1560,
+        y: 720,
+        angle: Math.PI,
         speed: 1.3,
         state: 'PATROL',
         patrolPath: [
-          { x: 1050, y: 880 },
-          { x: 1600, y: 880 },
-          { x: 1600, y: 600 },
-          { x: 1050, y: 600 }
+          { x: 1560, y: 720 },
+          { x: 1420, y: 720 },
+          { x: 1420, y: 950 },
+          { x: 1680, y: 950 }
         ],
         currentPathIndex: 0,
         alertLevel: 0,
-        sightRadius: 330,
-        fov: Math.PI * 0.45
+        sightRadius: 310,
+        fov: Math.PI * 0.46
       },
       {
-        id: 'bg-3',
-        x: 800,
-        y: 400,
+        id: 'g8-04',
+        x: 1100,
+        y: 350,
         angle: 0,
         speed: 1.3,
         state: 'PATROL',
         patrolPath: [
-          { x: 700, y: 400 },
-          { x: 1050, y: 400 },
-          { x: 1050, y: 220 },
-          { x: 700, y: 220 }
+          { x: 900, y: 350 },
+          { x: 1250, y: 350 },
+          { x: 1250, y: 420 },
+          { x: 900, y: 420 }
         ],
         currentPathIndex: 0,
         alertLevel: 0,
-        sightRadius: 340,
-        fov: Math.PI * 0.45
+        sightRadius: 310,
+        fov: Math.PI * 0.44
       },
       {
-        id: 'bg-4',
-        x: 1550,
-        y: 400,
-        angle: -1.5,
+        id: 'g8-05',
+        x: 1520,
+        y: 350,
+        angle: -Math.PI * 0.5,
+        speed: 1.25,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 1520, y: 350 },
+          { x: 1520, y: 150 },
+          { x: 1680, y: 150 },
+          { x: 1680, y: 350 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 320,
+        fov: Math.PI * 0.44
+      }
+    ],
+    cameras: [
+      {
+        id: 'cam-l8-01',
+        x: 820,
+        y: 550,
+        angle: 1.3,
+        baseAngle: 1.3,
+        sweepAngle: 1.4,
+        sweepSpeed: 1.0,
+        range: 350,
+        fov: Math.PI * 0.4,
+        isHacked: false,
+        isLooping: false,
+        isPowerOff: false
+      },
+      {
+        id: 'cam-l8-02',
+        x: 1380,
+        y: 470,
+        angle: 2.2,
+        baseAngle: 2.2,
+        sweepAngle: 1.3,
+        sweepSpeed: 0.95,
+        range: 350,
+        fov: Math.PI * 0.4,
+        isHacked: false,
+        isLooping: false,
+        isPowerOff: false
+      },
+      {
+        id: 'cam-l8-03',
+        x: 1280,
+        y: 120,
+        angle: 1.8,
+        baseAngle: 1.8,
+        sweepAngle: 1.2,
+        sweepSpeed: 0.9,
+        range: 330,
+        fov: Math.PI * 0.38,
+        isHacked: false,
+        isLooping: false,
+        isPowerOff: false
+      }
+    ],
+    drones: [],
+    lasers: [
+      {
+        id: 'laser-l8-aisle',
+        x1: 850,
+        y1: 750,
+        x2: 850,
+        y2: 890,
+        isActive: true,
+        cycleInterval: 2800,
+        cycleOffset: 0
+      }
+    ],
+    terminals: [
+      {
+        id: 'term-l8-laser',
+        x: 740,
+        y: 710,
+        type: 'OVERRIDE',
+        name: 'LOCKDOWN LASER OVERRIDE',
+        isHacked: false,
+        disablesLaserId: 'laser-l8-aisle',
+        description: 'Bypass emergency laser fence across central corridor.'
+      },
+      {
+        id: 'term-l8-command',
+        x: 1250,
+        y: 560,
+        type: 'CODE',
+        name: 'COMMAND SPIRE CIPHER BUS',
+        isHacked: false,
+        unlocksDoorId: 'door-l8-command',
+        description: 'Disengage emergency blast bulkhead protecting command suite.'
+      }
+    ]
+  },
+
+  // -------------------------------------------------------------------------
+  // LEVEL 09 — GHOST PROTOCOL
+  // -------------------------------------------------------------------------
+  {
+    id: 'op-09-ghost-protocol',
+    actNumber: 3,
+    actTitle: 'THE GHOST PROTOCOL',
+    levelNumber: 9,
+    environmentType: 'Secret underground corporate command center',
+    sectorId: 'sector-08',
+    sectorName: 'SECTOR 08 · THE BLACK VAULT',
+    operationCode: 'OP // 09',
+    title: 'GHOST PROTOCOL',
+    facilityName: 'PROJECT GHOST ZERO-POINT COMMAND',
+    targetName: 'THE GHOST PROTOCOL MASTER CORE',
+    difficulty: 'NIGHTMARE',
+    basePayout: 150000,
+    risk: 'EXTREME',
+    securityRating: 10.0,
+    briefing: 'The finale. Deep beneath the tectonic bedrock lies Project Ghost Zero-Point Command. Every system you have encountered is active: multi-layer laser grids, mil-spec guards with overlapping sectors, biometric quantum locks, and total surveillance. Infiltrate, crack the Master Core, discover the truth of your own identity, and disappear.',
+    secondaryObjectives: [
+      'Maintain ghost stealth rating throughout the operation',
+      'Neutralize zero mil-spec guards',
+      'Crack all 3 quantum encryption firewalls'
+    ],
+    recommendedEquipment: [
+      'OPTICAL CLOAK',
+      'NEURAL DECODER',
+      'REMOTE ACCESS DEVICE'
+    ],
+    entryRoutes: [
+      'Vector Alpha: Sub-aquatic turbine intake',
+      'Vector Bravo: Geothermal heat sink riser'
+    ],
+    unlockReward: 'CAMPAIGN COMPLETION & ELITE REPLAY MODIFIERS',
+    estimatedDuration: '07:30',
+    intel: {
+      guards: 6,
+      cameras: 3,
+      drones: 0,
+      securityTier: 'TIER 5 ZERO-POINT BLACK OPERATIVES'
+    },
+    mapWidth: 1800,
+    mapHeight: 1100,
+    playerStart: { x: 120, y: 920 },
+    vault: {
+      x: 1550,
+      y: 200,
+      width: 150,
+      height: 150,
+      targetName: 'THE GHOST PROTOCOL MASTER CORE',
+      isCracked: false,
+      securityLayers: 3
+    },
+    extraction: {
+      x: 160,
+      y: 180,
+      radius: 85,
+      name: 'SUB-AQUATIC AERODYNE DOCK'
+    },
+    lights: [
+      { id: 'l9-intake', x: 200, y: 920, radius: 210, isOn: true, color: '#fef08a' },
+      { id: 'l9-hall-alpha', x: 700, y: 800, radius: 260, isOn: true, color: '#38bdf8' },
+      { id: 'l9-hall-beta', x: 1180, y: 800, radius: 260, isOn: true, color: '#a855f7' },
+      { id: 'l9-core', x: 1560, y: 260, radius: 250, isOn: true, color: '#22d3ee' },
+      { id: 'l9-extract', x: 160, y: 180, radius: 210, isOn: true, color: '#22d3ee' }
+    ],
+    envObjects: [
+      {
+        id: 'env-l9-breaker',
+        x: 480,
+        y: 720,
+        width: 32,
+        height: 32,
+        type: 'CIRCUIT_BREAKER',
+        name: 'GEOTHERMAL PRIMARY BREAKER',
+        isInteracted: false,
+        targetId: 'l9-hall-alpha'
+      },
+      {
+        id: 'env-l9-vent',
+        x: 1300,
+        y: 480,
+        width: 32,
+        height: 32,
+        type: 'MAINTENANCE_VENT',
+        name: 'CRYOGENIC CORE CONDUIT',
+        isInteracted: false,
+        targetId: 'door-l9-core'
+      }
+    ],
+    walls: [
+      // Outer
+      { x1: 50, y1: 50, x2: 1750, y2: 50, type: 'SOLID' },
+      { x1: 1750, y1: 50, x2: 1750, y2: 1050, type: 'SOLID' },
+      { x1: 1750, y1: 1050, x2: 50, y2: 1050, type: 'SOLID' },
+      { x1: 50, y1: 1050, x2: 50, y2: 50, type: 'SOLID' },
+
+      // Infiltration intake
+      { x1: 280, y1: 750, x2: 280, y2: 1050, type: 'SOLID' },
+      { x1: 50, y1: 750, x2: 180, y2: 750, type: 'SOLID' },
+
+      // Perimeter Hall Alpha
+      { x1: 280, y1: 750, x2: 780, y2: 750, type: 'SOLID' },
+      { x1: 880, y1: 750, x2: 1400, y2: 750, type: 'SOLID' },
+
+      // Zero-Point Central Partition
+      { x1: 820, y1: 520, x2: 820, y2: 750, type: 'SOLID' },
+      { x1: 820, y1: 520, x2: 1400, y2: 520, type: 'SOLID' },
+      { x1: 1400, y1: 520, x2: 1400, y2: 700, type: 'SOLID' },
+      { x1: 1400, y1: 700, x2: 1400, y2: 800, type: 'DOOR', doorId: 'door-l9-alpha', isOpen: false },
+      { x1: 1400, y1: 800, x2: 1400, y2: 1050, type: 'SOLID' },
+
+      // Master Core Vault Room (top right)
+      { x1: 1300, y1: 100, x2: 1750, y2: 100, type: 'SOLID' },
+      { x1: 1300, y1: 100, x2: 1300, y2: 440, type: 'SOLID' },
+      { x1: 1300, y1: 440, x2: 1480, y2: 440, type: 'SOLID' },
+      { x1: 1480, y1: 440, x2: 1560, y2: 440, type: 'DOOR', doorId: 'door-l9-core', isOpen: false },
+      { x1: 1560, y1: 440, x2: 1750, y2: 440, type: 'SOLID' },
+
+      // North Aerodyne extraction wing
+      { x1: 50, y1: 440, x2: 1300, y2: 440, type: 'SOLID' },
+      { x1: 340, y1: 50, x2: 340, y2: 440, type: 'SOLID' },
+      { x1: 220, y1: 440, x2: 340, y2: 440, type: 'DOOR', doorId: 'door-l9-dock', isOpen: true }
+    ],
+    guards: [
+      {
+        id: 'g9-01',
+        x: 520,
+        y: 860,
+        angle: 0,
+        speed: 1.35,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 350, y: 860 },
+          { x: 750, y: 860 },
+          { x: 750, y: 980 },
+          { x: 350, y: 980 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 320,
+        fov: Math.PI * 0.46
+      },
+      {
+        id: 'g9-02',
+        x: 1080,
+        y: 860,
+        angle: -Math.PI * 0.5,
         speed: 1.4,
         state: 'PATROL',
         patrolPath: [
-          { x: 1450, y: 400 },
-          { x: 1700, y: 400 },
-          { x: 1700, y: 200 },
-          { x: 1450, y: 200 }
-        ],
-        currentPathIndex: 0,
-        alertLevel: 0,
-        sightRadius: 340,
-        fov: Math.PI * 0.45
-      },
-      {
-        id: 'bg-5',
-        x: 1850,
-        y: 600,
-        angle: -Math.PI * 0.5,
-        speed: 1.1,
-        state: 'PATROL',
-        patrolPath: [
-          { x: 1800, y: 600 },
-          { x: 2000, y: 600 },
-          { x: 1800, y: 600 }
-        ],
-        currentPathIndex: 0,
-        alertLevel: 0,
-        sightRadius: 350,
-        fov: Math.PI * 0.42
-      },
-      {
-        id: 'bg-6',
-        x: 1450,
-        y: 1100,
-        angle: Math.PI,
-        speed: 1.25,
-        state: 'PATROL',
-        patrolPath: [
-          { x: 1300, y: 1100 },
-          { x: 1750, y: 1100 },
-          { x: 1300, y: 1100 }
+          { x: 1080, y: 980 },
+          { x: 1080, y: 680 },
+          { x: 1320, y: 680 },
+          { x: 1320, y: 980 }
         ],
         currentPathIndex: 0,
         alertLevel: 0,
         sightRadius: 320,
-        fov: Math.PI * 0.45
+        fov: Math.PI * 0.46
+      },
+      {
+        id: 'g9-03',
+        x: 1560,
+        y: 740,
+        angle: Math.PI,
+        speed: 1.35,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 1560, y: 740 },
+          { x: 1420, y: 740 },
+          { x: 1420, y: 960 },
+          { x: 1680, y: 960 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 320,
+        fov: Math.PI * 0.46
+      },
+      {
+        id: 'g9-04',
+        x: 1050,
+        y: 350,
+        angle: 0,
+        speed: 1.3,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 880, y: 350 },
+          { x: 1240, y: 350 },
+          { x: 1240, y: 420 },
+          { x: 880, y: 420 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 320,
+        fov: Math.PI * 0.44
+      },
+      {
+        id: 'g9-05',
+        x: 1500,
+        y: 340,
+        angle: -Math.PI * 0.5,
+        speed: 1.3,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 1500, y: 340 },
+          { x: 1500, y: 150 },
+          { x: 1680, y: 150 },
+          { x: 1680, y: 340 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 320,
+        fov: Math.PI * 0.44
+      },
+      {
+        id: 'g9-06',
+        x: 600,
+        y: 300,
+        angle: 0,
+        speed: 1.25,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 420, y: 300 },
+          { x: 780, y: 300 },
+          { x: 780, y: 380 },
+          { x: 420, y: 380 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 320,
+        fov: Math.PI * 0.42
       }
     ],
     cameras: [
       {
-        id: 'bg-cam-01',
-        x: 360,
-        y: 960,
-        angle: 0.7,
-        baseAngle: 0.7,
-        sweepAngle: 1.2,
-        sweepSpeed: 0.8,
+        id: 'cam-l9-01',
+        x: 800,
+        y: 550,
+        angle: 1.3,
+        baseAngle: 1.3,
+        sweepAngle: 1.4,
+        sweepSpeed: 1.05,
         range: 360,
-        fov: Math.PI * 0.38,
+        fov: Math.PI * 0.42,
         isHacked: false,
         isLooping: false,
         isPowerOff: false
       },
       {
-        id: 'bg-cam-02',
-        x: 1290,
-        y: 510,
+        id: 'cam-l9-02',
+        x: 1380,
+        y: 470,
         angle: 2.2,
         baseAngle: 2.2,
-        sweepAngle: 1.1,
-        sweepSpeed: 0.85,
-        range: 370,
-        fov: Math.PI * 0.38,
-        isHacked: false,
-        isLooping: false,
-        isPowerOff: false
-      },
-      {
-        id: 'bg-cam-03',
-        x: 1760,
-        y: 490,
-        angle: -2.3,
-        baseAngle: -2.3,
-        sweepAngle: 0.9,
-        sweepSpeed: 0.9,
-        range: 380,
-        fov: Math.PI * 0.36,
-        isHacked: false,
-        isLooping: false,
-        isPowerOff: false
-      },
-      {
-        id: 'bg-cam-04',
-        x: 1740,
-        y: 80,
-        angle: 2.6,
-        baseAngle: 2.6,
-        sweepAngle: 0.8,
-        sweepSpeed: 0.8,
+        sweepAngle: 1.4,
+        sweepSpeed: 1.05,
         range: 360,
-        fov: Math.PI * 0.36,
+        fov: Math.PI * 0.42,
+        isHacked: false,
+        isLooping: false,
+        isPowerOff: false
+      },
+      {
+        id: 'cam-l9-03',
+        x: 1280,
+        y: 120,
+        angle: 1.8,
+        baseAngle: 1.8,
+        sweepAngle: 1.3,
+        sweepSpeed: 1.0,
+        range: 340,
+        fov: Math.PI * 0.4,
         isHacked: false,
         isLooping: false,
         isPowerOff: false
       }
     ],
-    drones: [
-      {
-        id: 'bg-drone-01',
-        x: 800,
-        y: 800,
-        angle: 0,
-        speed: 2.0,
-        patrolPath: [
-          { x: 700, y: 800 },
-          { x: 1200, y: 800 },
-          { x: 1200, y: 600 },
-          { x: 700, y: 600 }
-        ],
-        currentPathIndex: 0,
-        range: 250,
-        isHacked: false
-      },
-      {
-        id: 'bg-drone-02',
-        x: 1500,
-        y: 300,
-        angle: 1.0,
-        speed: 2.1,
-        patrolPath: [
-          { x: 1400, y: 300 },
-          { x: 1700, y: 300 },
-          { x: 1700, y: 450 },
-          { x: 1400, y: 450 }
-        ],
-        currentPathIndex: 0,
-        range: 250,
-        isHacked: false
-      }
-    ],
+    drones: [],
     lasers: [
       {
-        id: 'bg-laser-01',
-        x1: 850,
-        y1: 950,
-        x2: 950,
-        y2: 950,
+        id: 'laser-l9-core',
+        x1: 820,
+        y1: 750,
+        x2: 820,
+        y2: 890,
         isActive: true,
-        cycleInterval: 2800,
-        cycleOffset: 0,
-        isHacked: false
-      },
-      {
-        id: 'bg-laser-02',
-        x1: 1200,
-        y1: 500,
-        x2: 1300,
-        y2: 500,
-        isActive: true,
-        cycleInterval: 3200,
-        cycleOffset: 1200,
-        isHacked: false
+        cycleInterval: 2600,
+        cycleOffset: 0
       }
     ],
     terminals: [
       {
-        id: 'term-bg-grid',
-        x: 450,
-        y: 700,
-        type: 'SIGNAL',
-        name: 'SECURITY ARCHIVE POWER RELAY',
-        isHacked: false,
-        disablesLaserId: 'bg-laser-01',
-        description: 'Synchronize optical frequency to drop ingress laser gate.'
-      },
-      {
-        id: 'term-bg-cams',
-        x: 1150,
-        y: 720,
+        id: 'term-l9-laser',
+        x: 720,
+        y: 710,
         type: 'OVERRIDE',
-        name: 'MILITARY FEED COMMUTATOR',
+        name: 'FIREWALL ZERO LASER BUS',
         isHacked: false,
-        disablesCameraId: 'bg-cam-02',
-        description: 'Harmonize channel waves to blind corridor surveillance camera.'
+        disablesLaserId: 'laser-l9-core',
+        description: 'Bypass quantum laser barrier across Zero-Point corridor.'
       },
       {
-        id: 'term-bg-vault',
-        x: 1600,
-        y: 250,
-        type: 'NETWORK',
-        name: 'BLACK VAULT ROOT CONTROLLER',
+        id: 'term-l9-core',
+        x: 1240,
+        y: 560,
+        type: 'CODE',
+        name: 'MASTER PROTOCOL CIPHER MATRIX',
         isHacked: false,
-        unlocksDoorId: 'blackbox-vault-door',
-        disablesLaserId: 'bg-laser-02',
-        description: 'Navigate quantum encryption maze to retract vault blast shielding.'
+        unlocksDoorId: 'door-l9-core',
+        description: 'Disengage quantum isolation seal guarding the Master Core.'
       }
     ]
   }

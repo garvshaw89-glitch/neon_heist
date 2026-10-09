@@ -182,6 +182,10 @@ export interface GuardVoiceLine {
 
 export interface Mission {
   id: string;
+  actNumber: number;
+  actTitle: string;
+  levelNumber: number;
+  environmentType: string;
   sectorId: string;
   sectorName: string;
   operationCode: string;
@@ -191,10 +195,13 @@ export interface Mission {
   difficulty: 'RECRUIT' | 'OPERATIVE' | 'GHOST' | 'NIGHTMARE';
   basePayout: number;
   risk: 'LOW' | 'MEDIUM' | 'HIGH' | 'EXTREME';
-  securityRating: number; // e.g. 8.4
+  securityRating: number; // e.g. 1.0 to 10.0
   briefing: string;
   secondaryObjectives: string[];
   recommendedEquipment: string[];
+  entryRoutes?: string[];
+  unlockReward?: string;
+  estimatedDuration?: string;
   intel: {
     guards: number;
     cameras: number;

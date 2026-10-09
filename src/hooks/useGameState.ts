@@ -304,11 +304,46 @@ export function useGameState() {
       const newReputationXp = prev.reputationXp + (isPerfect ? 3500 : 2000);
       const newRepLevel = Math.floor(newReputationXp / 1000);
 
+      // Automatic equipment unlocks upon completing campaign missions
+      const newUnlockedEquipment = [...prev.unlockedEquipment];
+      if (result.missionId === 'op-01-dead-drop' && !newUnlockedEquipment.includes('cam-analyzer')) {
+        newUnlockedEquipment.push('cam-analyzer');
+      }
+      if (result.missionId === 'op-02-blind-spot' && !newUnlockedEquipment.includes('signal-jam')) {
+        newUnlockedEquipment.push('signal-jam');
+      }
+      if (result.missionId === 'op-04-blackout' && !newUnlockedEquipment.includes('emp-disruptor')) {
+        newUnlockedEquipment.push('emp-disruptor');
+      }
+      if (result.missionId === 'op-05-silent-frequency' && !newUnlockedEquipment.includes('remote-access')) {
+        newUnlockedEquipment.push('remote-access');
+      }
+      if (result.missionId === 'op-07-redline' && !newUnlockedEquipment.includes('grapple-line')) {
+        newUnlockedEquipment.push('grapple-line');
+      }
+      if (result.missionId === 'op-08-no-witnesses' && !newUnlockedEquipment.includes('mag-gloves')) {
+        newUnlockedEquipment.push('mag-gloves');
+      }
+
+      // Achievement progress
+      const newAchievements = [...prev.achievements];
+      if (!newAchievements.includes('ach-first-heist')) {
+        newAchievements.push('ach-first-heist');
+      }
+      if (isPerfect && !newAchievements.includes('ach-perfect-ghost')) {
+        newAchievements.push('ach-perfect-ghost');
+      }
+      if (newMissions.length >= 9 && !newAchievements.includes('ach-ghost-protocol')) {
+        newAchievements.push('ach-ghost-protocol');
+      }
+
       return {
         ...prev,
         credits: prev.credits + result.totalPayout,
         stats: newStats,
         completedMissionIds: newMissions,
+        unlockedEquipment: newUnlockedEquipment,
+        achievements: newAchievements,
         reputationXp: newReputationXp,
         reputationLevel: newRepLevel
       };

@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { PlayerState } from '../../types/game';
+import { MISSIONS } from '../../game/missions';
 import { ActiveNavTab } from '../navigation/TopBar';
 import { sound } from '../../game/audio';
 import {
@@ -226,77 +227,92 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 my-auto py-6">
           
           {/* Left Hero Card: Active Dispatch Dossier */}
-          <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
-            <div className="brutal-frame glass-primary p-7 rounded-2xl terminal-glass surface-imperfections space-y-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <span className="font-mono-tech text-[10px] text-cyan-400 uppercase tracking-widest block mb-1">
-                    PRIMARY DIRECTIVE // OP-01
-                  </span>
-                  <h2 className="text-3xl font-display font-black text-white tracking-tight">
-                    SILENT ENTRY
-                  </h2>
-                  <p className="text-xs text-slate-400 mt-1">
-                    AURELION FINANCIAL TOWER · SECTOR 01
+          {(() => {
+            const nextMission = MISSIONS.find(m => !player.completedMissionIds.includes(m.id)) || MISSIONS[0];
+            return (
+              <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
+                <div className="brutal-frame glass-primary p-7 rounded-2xl terminal-glass surface-imperfections space-y-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="font-mono-tech text-[10px] text-cyan-400 uppercase tracking-widest block mb-1">
+                        ACT {nextMission.actNumber} // {nextMission.operationCode}
+                      </span>
+                      <h2 className="text-3xl font-display font-black text-white tracking-tight">
+                        {nextMission.title}
+                      </h2>
+                      <p className="text-xs text-slate-400 mt-1">
+                        {nextMission.facilityName} · {nextMission.sectorName}
+                      </p>
+                    </div>
+                    <span className="brutal-stamp text-amber-300 border-amber-500/30">
+                      LEVEL 0{nextMission.levelNumber}
+                    </span>
+                  </div>
+
+                  {/* Oversized Numerical Telemetry */}
+                  <div className="grid grid-cols-3 gap-3 p-4 rounded-xl bg-black/50 border border-white/5">
+                    <div>
+                      <span className="text-[9px] text-slate-500 block uppercase">SECURITY</span>
+                      <span className="text-xl font-display font-extrabold text-amber-400">
+                        {nextMission.securityRating.toFixed(1)}/10
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-slate-500 block uppercase">REWARD</span>
+                      <span className="text-xl font-display font-extrabold text-cyan-300">
+                        ₡{nextMission.basePayout.toLocaleString()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-slate-500 block uppercase">RISK</span>
+                      <span className={`text-xl font-display font-extrabold ${
+                        nextMission.risk === 'EXTREME' ? 'text-rose-500' :
+                        nextMission.risk === 'HIGH' ? 'text-rose-400' :
+                        nextMission.risk === 'MEDIUM' ? 'text-amber-400' : 'text-emerald-400'
+                      }`}>
+                        {nextMission.risk}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-300 leading-relaxed font-sans">
+                    {nextMission.briefing}
                   </p>
+
+                  {/* Tactile Clay Action Triggers */}
+                  <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                    <TactileButton
+                      variant="clay-accent"
+                      size="md"
+                      className="flex-1"
+                      icon={<Play className="w-4 h-4 fill-slate-950" />}
+                      onClick={onSelectOperation}
+                    >
+                      COMMENCE OPERATION
+                    </TactileButton>
+
+                    <TactileButton
+                      variant="clay-primary"
+                      size="md"
+                      icon={<Radio className="w-4 h-4 text-cyan-400" />}
+                      onClick={onPlayTutorial}
+                    >
+                      LEVEL 01 DEPLOY
+                    </TactileButton>
+                  </div>
                 </div>
-                <span className="brutal-stamp text-amber-300 border-amber-500/30">
-                  CLASSIFIED
-                </span>
-              </div>
 
-              {/* Oversized Numerical Telemetry */}
-              <div className="grid grid-cols-3 gap-3 p-4 rounded-xl bg-black/50 border border-white/5">
-                <div>
-                  <span className="text-[9px] text-slate-500 block uppercase">SECURITY</span>
-                  <span className="text-xl font-display font-extrabold text-amber-400">LVL 03</span>
-                </div>
-                <div>
-                  <span className="text-[9px] text-slate-500 block uppercase">REWARD</span>
-                  <span className="text-xl font-display font-extrabold text-cyan-300">₡12,500</span>
-                </div>
-                <div>
-                  <span className="text-[9px] text-slate-500 block uppercase">RISK</span>
-                  <span className="text-xl font-display font-extrabold text-rose-400">HIGH</span>
+                {/* Micro Intelligence Ticker */}
+                <div className="p-3.5 rounded-xl bg-black/60 border border-white/5 flex items-center justify-between text-xs text-slate-400">
+                  <div className="flex items-center gap-2">
+                    <Terminal className="w-4 h-4 text-cyan-400" />
+                    <span>TARGET CLASSIFICATION: {nextMission.targetName}</span>
+                  </div>
+                  <span className="text-[10px] text-slate-500 font-mono-tech">{nextMission.environmentType}</span>
                 </div>
               </div>
-
-              <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                Infiltrate the high-security core of Aurelion Dynamics. Bypass the laser perimeter, loop security cameras, and extract the quantum encryption cipher.
-              </p>
-
-              {/* Tactile Clay Action Triggers */}
-              <div className="pt-2 flex flex-col sm:flex-row gap-3">
-                <TactileButton
-                  variant="clay-accent"
-                  size="md"
-                  className="flex-1"
-                  icon={<Play className="w-4 h-4 fill-slate-950" />}
-                  onClick={onSelectOperation}
-                >
-                  COMMENCE OPERATION
-                </TactileButton>
-
-                <TactileButton
-                  variant="clay-primary"
-                  size="md"
-                  icon={<Radio className="w-4 h-4 text-cyan-400" />}
-                  onClick={onPlayTutorial}
-                >
-                  TACTICAL TUTORIAL
-                </TactileButton>
-              </div>
-            </div>
-
-            {/* Micro Intelligence Ticker */}
-            <div className="p-3.5 rounded-xl bg-black/60 border border-white/5 flex items-center justify-between text-xs text-slate-400">
-              <div className="flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-cyan-400" />
-                <span>INTELLIGENCE RADAR: ORION SURVEILLANCE ACTIVE</span>
-              </div>
-              <span className="text-[10px] text-slate-500">SEC. LAYER 4</span>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Right Column: 4 Brutalist Tactical Modules */}
           <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">

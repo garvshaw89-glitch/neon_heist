@@ -438,6 +438,18 @@ export const StealthGame: React.FC<StealthGameProps> = ({
         setWalls(prev => prev.map(w => w.doorId === nearbyEnv.targetId ? { ...w, isOpen: true } : w));
         return;
       }
+      if (nearbyEnv.type === 'CIRCUIT_BREAKER') {
+        sound.playLightSwitch();
+        // Trip station breaker: disable linked lighting or all room lighting
+        setLights(prev => prev.map(l => ({ ...l, isOn: false })));
+        setEnvObjects(prev => prev.map(o => o.id === nearbyEnv.id ? { ...o, isInteracted: true } : o));
+        return;
+      }
+      if (nearbyEnv.type === 'SECURITY_SAFE') {
+        sound.playConfirm();
+        setEnvObjects(prev => prev.map(o => o.id === nearbyEnv.id ? { ...o, isInteracted: true } : o));
+        return;
+      }
     }
 
     // 2. Terminal Hack
@@ -915,7 +927,11 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       o => Math.hypot(o.x + o.width / 2 - playerPos.x, o.y + o.height / 2 - playerPos.y) < 55
     );
     if (nearbyEnv) {
-      setNearbyPrompt(`[E] TOGGLE ${nearbyEnv.name}`);
+      if (nearbyEnv.type === 'CIRCUIT_BREAKER') {
+        setNearbyPrompt(nearbyEnv.isInteracted ? `[E] ${nearbyEnv.name} (OFFLINE)` : `[E] TRIP ${nearbyEnv.name}`);
+      } else {
+        setNearbyPrompt(`[E] TOGGLE ${nearbyEnv.name}`);
+      }
       return;
     }
 
