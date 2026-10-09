@@ -25,6 +25,7 @@ import { CreditsModal } from './components/credits/CreditsModal';
 import { CustomCursor } from './components/common/CustomCursor';
 import { ToastContainer, toast } from './components/common/ToastSystem';
 import { GameErrorBoundary } from './components/common/GameErrorBoundary';
+import { BackgroundMotionEngine } from './components/effects/BackgroundMotionEngine';
 
 export default function App() {
   const {
@@ -145,16 +146,26 @@ export default function App() {
 
       {/* 04 TACTICAL COMMAND ENVIRONMENT (NON-GAMEPLAY) */}
       {!inBoot && !inIntro && !activeMission && (
-        <div className="relative w-screen h-screen bg-[#040609] text-slate-100 flex flex-col overflow-hidden">
-          {/* Universal Header System */}
-          <TopBar
-            currentTab={currentTab}
-            onTabChange={setCurrentTab}
-            credits={player.credits}
-            onQuickHeist={handleQuickDeploy}
-            isMuted={isMuted}
-            onToggleMute={handleToggleMute}
-          />
+        <div className="relative w-screen h-screen text-slate-100 flex flex-col overflow-hidden">
+          {/* Living 3D Atmospheric Background Engine (Behind all tactical content) */}
+          <div className="fixed inset-0 pointer-events-none z-0">
+            <BackgroundMotionEngine />
+          </div>
+
+          {/* Tactical Backdrop Tint for Visual Contrast & Legibility */}
+          <div className="fixed inset-0 pointer-events-none z-[1] bg-[#040609]/70 backdrop-blur-[1.5px]" />
+
+          {/* Tactical Content Container */}
+          <div className="relative z-10 w-full h-full flex flex-col overflow-hidden">
+            {/* Universal Header System */}
+            <TopBar
+              currentTab={currentTab}
+              onTabChange={setCurrentTab}
+              credits={player.credits}
+              onQuickHeist={handleQuickDeploy}
+              isMuted={isMuted}
+              onToggleMute={handleToggleMute}
+            />
 
           {/* Main Tactical View Workspace */}
           <main className="flex-1 w-full max-w-[1560px] mx-auto overflow-hidden relative">
@@ -220,7 +231,8 @@ export default function App() {
             onOpenKeybinds={() => setCurrentTab('SETTINGS')}
           />
         </div>
-      )}
+      </div>
+    )}
 
       {/* MODALS */}
       {missionResult && (
