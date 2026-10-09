@@ -19,19 +19,22 @@ import {
 } from 'lucide-react';
 import { TactileButton } from '../common/TactileButton';
 import { BrutalCard } from '../common/BrutalCard';
+import { Mission } from '../../types/game';
 
 interface MainDashboardProps {
   player: PlayerState;
   onNavigate: (tab: ActiveNavTab) => void;
   onSelectOperation: () => void;
   onPlayTutorial: () => void;
+  onStartMission: (mission: Mission) => void;
 }
 
 export const MainDashboard: React.FC<MainDashboardProps> = ({
   player,
   onNavigate,
   onSelectOperation,
-  onPlayTutorial
+  onPlayTutorial,
+  onStartMission
 }) => {
   const cityCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -184,7 +187,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   ];
 
   return (
-    <div className="relative w-full h-[calc(100vh-4.5rem)] overflow-hidden select-none font-mono-tech">
+    <div className="relative w-full min-h-full overflow-hidden select-none font-mono-tech">
       {/* Live Atmospheric Canvas Backdrop */}
       <canvas ref={cityCanvasRef} className="absolute inset-0 w-full h-full block z-0 opacity-70" />
 
@@ -193,7 +196,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
       <div className="absolute inset-0 cyber-scanlines opacity-40 z-10 pointer-events-none" />
 
       {/* Foreground Asymmetric Brutalist × Glass Layout */}
-      <div className="relative z-20 w-full h-full p-6 md:p-8 flex flex-col justify-between overflow-y-auto">
+      <div className="relative z-20 w-full h-full p-4 sm:p-6 md:p-8 flex flex-col justify-between overflow-y-auto">
         
         {/* Top Status HUD Band */}
         <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/10">
@@ -284,9 +287,12 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                     <TactileButton
                       variant="clay-accent"
                       size="md"
-                      className="flex-1"
+                      className="flex-1 justify-center"
                       icon={<Play className="w-4 h-4 fill-slate-950" />}
-                      onClick={onSelectOperation}
+                      onClick={() => {
+                        sound.playConfirm();
+                        onStartMission(nextMission);
+                      }}
                     >
                       COMMENCE OPERATION
                     </TactileButton>
@@ -294,10 +300,11 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                     <TactileButton
                       variant="clay-primary"
                       size="md"
-                      icon={<Radio className="w-4 h-4 text-cyan-400" />}
-                      onClick={onPlayTutorial}
+                      className="justify-center"
+                      icon={<Crosshair className="w-4 h-4 text-cyan-400" />}
+                      onClick={onSelectOperation}
                     >
-                      LEVEL 01 DEPLOY
+                      OPERATIONS MAP
                     </TactileButton>
                   </div>
                 </div>

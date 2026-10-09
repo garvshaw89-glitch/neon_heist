@@ -6,29 +6,30 @@ export const MISSIONS: Mission[] = [
   // =========================================================================
 
   // -------------------------------------------------------------------------
-  // LEVEL 01 — DEAD DROP
+  // LEVEL 01 — THE DIAMOND CROWN
   // -------------------------------------------------------------------------
   {
-    id: 'op-01-dead-drop',
+    id: 'op-01-diamond-crown',
     actNumber: 1,
     actTitle: 'BECOMING THE GHOST',
     levelNumber: 1,
-    environmentType: 'Rain-soaked industrial alley',
+    environmentType: 'Rain-soaked futuristic luxury casino & resort',
     sectorId: 'sector-01',
-    sectorName: 'SECTOR 01 · INDUSTRIAL FREIGHT YARD',
+    sectorName: 'SECTOR 01 · DIAMOND CROWN STRIP',
     operationCode: 'OP // 01',
-    title: 'DEAD DROP',
-    facilityName: 'NEXUS LOGISTICS DEPOT - ALLEYWAY 4',
-    targetName: 'STOLEN CIPHER KEY',
-    difficulty: 'RECRUIT',
-    basePayout: 20000,
-    risk: 'LOW',
-    securityRating: 1.0,
-    briefing: 'Begin in a rain-soaked industrial alley. Study guard patrol patterns, use dark shadow pockets to conceal your approach, bypass the maintenance security checkpoint, recover the stolen cipher key, and extract cleanly.',
+    title: 'THE DIAMOND CROWN',
+    facilityName: 'DIAMOND CROWN CASINO & RESORT',
+    targetName: 'CLASSIFIED DATA CORE',
+    difficulty: 'OPERATIVE',
+    basePayout: 32000,
+    risk: 'MEDIUM',
+    securityRating: 3.5,
+    briefing: 'Infiltrate the Diamond Crown Casino & Resort across its 7 interconnected sectors: Main Entrance, Casino Lobby, VIP Lounge, Staff Area, Security Room, Parking Garage, and the subterranean Diamond Vault. Your primary objective: crack the vault and extract with the syndicate\'s classified data core. Optional objective: recover the VIP guest list from the private Velvet Lounge salon. Maintain the Ghost standard: zero alarms.',
     secondaryObjectives: [
-      'Complete without triggering facility alarms',
-      'Neutralize zero guards (Ghost standard)',
-      'Decrypt maintenance auxiliary terminal'
+      'Recover the VIP guest list from the Velvet Lounge salon',
+      'Override surveillance monitoring grid in the Security Room',
+      'Complete extraction without triggering casino alarms',
+      'Maintain Ghost standard: Zero casualties'
     ],
     recommendedEquipment: [
       'SILENT BOOTS',
@@ -36,181 +37,475 @@ export const MISSIONS: Mission[] = [
       'ACOUSTIC DISTRACTOR'
     ],
     entryRoutes: [
-      'Vector Alpha: South alley drain conduit (Low visibility)',
-      'Vector Bravo: Cargo dock catwalk (Overhead vantage)'
+      'Vector Alpha: Grand Entrance foyer (High surveillance)',
+      'Vector Bravo: Staff Delivery corridor (Restricted credentials)',
+      'Vector Gamma: Parking Garage sublevel transit'
     ],
-    unlockReward: 'BASIC SCANNER & LEVEL 02 ACCESS',
-    estimatedDuration: '03:30',
+    unlockReward: 'BLACK MARKET ACCESS & SECTOR 02 CLEARANCE',
+    estimatedDuration: '06:30',
     intel: {
-      guards: 2,
-      cameras: 1,
+      guards: 6,
+      cameras: 4,
       drones: 0,
-      securityTier: 'TIER 1 DEPOT SECURITY'
+      securityTier: 'TIER 2 PRIVATE CASINO SYNDICATE SECURITY'
     },
     isTutorial: true,
-    mapWidth: 1800,
-    mapHeight: 1100,
-    playerStart: { x: 140, y: 880 },
+    mapWidth: 2600,
+    mapHeight: 1800,
+    playerStart: { x: 380, y: 1680 },
     vault: {
-      x: 1540,
-      y: 320,
-      width: 130,
-      height: 130,
-      targetName: 'STOLEN CIPHER KEY',
+      x: 2260,
+      y: 340,
+      width: 140,
+      height: 140,
+      targetName: 'CLASSIFIED DATA CORE',
       isCracked: false,
-      securityLayers: 2
+      securityLayers: 3
     },
     extraction: {
-      x: 180,
-      y: 220,
-      radius: 80,
-      name: 'FIRE ESCAPE ROOFTOP EXTRACTION'
+      x: 1420,
+      y: 150,
+      radius: 90,
+      name: 'SKY-CRANE HELIPAD EXTRACTION'
     },
     lights: [
-      { id: 'l1-alley-start', x: 200, y: 880, radius: 180, isOn: true, color: '#fef08a' },
-      { id: 'l1-patrol-room', x: 780, y: 780, radius: 220, isOn: true, color: '#e2e8f0' },
-      { id: 'l1-cam-corridor', x: 1200, y: 780, radius: 200, isOn: true, color: '#e2e8f0' },
-      { id: 'l1-vault-room', x: 1550, y: 340, radius: 200, isOn: true, color: '#38bdf8' },
-      { id: 'l1-extraction', x: 180, y: 220, radius: 210, isOn: true, color: '#22d3ee' }
+      // Main Entrance lights
+      { id: 'l-ent-foyer', x: 540, y: 1520, radius: 240, isOn: true, color: '#fef08a' },
+      { id: 'l-ent-west', x: 260, y: 1460, radius: 200, isOn: true, color: '#94a3b8' },
+
+      // Casino Lobby chandeliers (Warm Gold & Cyan)
+      { id: 'l-lobby-center', x: 1200, y: 1040, radius: 320, isOn: true, color: '#fbbf24' },
+      { id: 'l-lobby-west', x: 880, y: 980, radius: 260, isOn: true, color: '#fef08a' },
+      { id: 'l-lobby-east', x: 1560, y: 1060, radius: 280, isOn: true, color: '#38bdf8' },
+
+      // VIP Lounge (Velvet Magenta & Rose)
+      { id: 'l-vip-salon', x: 1100, y: 480, radius: 290, isOn: true, color: '#fb7185' },
+      { id: 'l-vip-bar', x: 1480, y: 480, radius: 270, isOn: true, color: '#f43f5e' },
+
+      // Staff Area & Kitchens (Fluorescent Industrial)
+      { id: 'l-staff-kitchen', x: 340, y: 520, radius: 240, isOn: true, color: '#cbd5e1' },
+      { id: 'l-staff-storage', x: 340, y: 980, radius: 220, isOn: true, color: '#94a3b8' },
+
+      // Security Monitoring Room (Cool High-Tech Cyan)
+      { id: 'l-sec-hub', x: 2150, y: 1040, radius: 260, isOn: true, color: '#22d3ee' },
+
+      // Diamond Vault (High-Intensity Blue & White)
+      { id: 'l-vault-anteroom', x: 1980, y: 380, radius: 220, isOn: true, color: '#38bdf8' },
+      { id: 'l-vault-chamber', x: 2320, y: 340, radius: 250, isOn: true, color: '#e0f2fe' },
+
+      // Parking Garage (Sodium Amber & Shadows)
+      { id: 'l-garage-west', x: 1150, y: 1550, radius: 260, isOn: true, color: '#ca8a04' },
+      { id: 'l-garage-east', x: 1950, y: 1550, radius: 260, isOn: true, color: '#ca8a04' },
+
+      // Rooftop Helipad
+      { id: 'l-helipad', x: 1420, y: 150, radius: 220, isOn: true, color: '#22d3ee' }
     ],
     envObjects: [
       {
-        id: 'env-l1-switch',
-        x: 1380,
-        y: 720,
-        width: 24,
-        height: 24,
-        type: 'LIGHT_SWITCH',
-        name: 'ROOM 3 OVERHEAD LIGHT SWITCH',
+        id: 'env-staff-breaker',
+        x: 480,
+        y: 420,
+        width: 28,
+        height: 28,
+        type: 'CIRCUIT_BREAKER',
+        name: 'STAFF CORRIDOR CIRCUIT BREAKER',
         isInteracted: false,
-        targetId: 'l1-vault-room'
+        targetId: 'l-staff-kitchen'
       },
       {
-        id: 'env-l1-vent',
-        x: 1360,
-        y: 280,
+        id: 'env-staff-vent',
+        x: 640,
+        y: 740,
         width: 32,
         height: 32,
         type: 'MAINTENANCE_VENT',
-        name: 'ROOFTOP DUCT CONDUIT',
+        name: 'HVAC CONDUIT TO SECURITY HUB',
         isInteracted: false,
-        targetId: 'door-l1-vent'
+        targetId: 'door-sec-hub'
       }
     ],
     walls: [
-      // Perimeter
-      { x1: 50, y1: 50, x2: 1750, y2: 50, type: 'SOLID' },
-      { x1: 1750, y1: 50, x2: 1750, y2: 1050, type: 'SOLID' },
-      { x1: 1750, y1: 1050, x2: 50, y2: 1050, type: 'SOLID' },
-      { x1: 50, y1: 1050, x2: 50, y2: 50, type: 'SOLID' },
+      // Outer Map Perimeter
+      { x1: 50, y1: 50, x2: 2550, y2: 50, type: 'SOLID' },
+      { x1: 2550, y1: 50, x2: 2550, y2: 1750, type: 'SOLID' },
+      { x1: 2550, y1: 1750, x2: 50, y2: 1750, type: 'SOLID' },
+      { x1: 50, y1: 1750, x2: 50, y2: 50, type: 'SOLID' },
 
-      // Room 1 (Alley start barrier)
-      { x1: 320, y1: 720, x2: 320, y2: 1050, type: 'SOLID' },
-      { x1: 50, y1: 720, x2: 320, y2: 720, type: 'SOLID' },
+      // 1. MAIN ENTRANCE & EXTERIOR COURTYARD
+      { x1: 50, y1: 1300, x2: 180, y2: 1300, type: 'SOLID' },
+      { x1: 180, y1: 1300, x2: 260, y2: 1300, type: 'DOOR', doorId: 'door-staff-service', isOpen: false },
+      { x1: 260, y1: 1300, x2: 500, y2: 1300, type: 'SOLID' },
+      { x1: 500, y1: 1300, x2: 660, y2: 1300, type: 'DOOR', doorId: 'door-main-entrance', isOpen: true },
+      { x1: 660, y1: 1300, x2: 800, y2: 1300, type: 'SOLID' },
+      { x1: 800, y1: 1300, x2: 800, y2: 1750, type: 'SOLID' },
 
-      // Corridor partition between Start and Patrol Room
-      { x1: 320, y1: 720, x2: 480, y2: 720, type: 'SOLID' },
-      { x1: 320, y1: 900, x2: 560, y2: 900, type: 'SOLID' },
-      { x1: 480, y1: 720, x2: 560, y2: 720, type: 'SOLID' },
+      // Entrance Decorative Pillars / Cover
+      { x1: 300, y1: 1500, x2: 360, y2: 1500, type: 'SOLID' },
+      { x1: 360, y1: 1500, x2: 360, y2: 1560, type: 'SOLID' },
+      { x1: 360, y1: 1560, x2: 300, y2: 1560, type: 'SOLID' },
+      { x1: 300, y1: 1560, x2: 300, y2: 1500, type: 'SOLID' },
 
-      // Main Patrol Room
-      { x1: 560, y1: 660, x2: 980, y2: 660, type: 'SOLID' },
-      { x1: 560, y1: 660, x2: 560, y2: 900, type: 'SOLID' },
-      { x1: 980, y1: 660, x2: 980, y2: 760, type: 'SOLID' },
-      { x1: 980, y1: 760, x2: 980, y2: 860, type: 'DOOR', doorId: 'door-l1-gate', isOpen: false },
-      { x1: 980, y1: 860, x2: 980, y2: 1050, type: 'SOLID' },
+      { x1: 580, y1: 1500, x2: 640, y2: 1500, type: 'SOLID' },
+      { x1: 640, y1: 1500, x2: 640, y2: 1560, type: 'SOLID' },
+      { x1: 640, y1: 1560, x2: 580, y2: 1560, type: 'SOLID' },
+      { x1: 580, y1: 1560, x2: 580, y2: 1500, type: 'SOLID' },
 
-      // Camera Corridor
-      { x1: 980, y1: 660, x2: 1420, y2: 660, type: 'SOLID' },
-      { x1: 1420, y1: 660, x2: 1420, y2: 770, type: 'SOLID' },
-      { x1: 1420, y1: 850, x2: 1420, y2: 1050, type: 'SOLID' }, // Door gap 770-850
+      // 2. STAFF AREA & KITCHENS (West Wing)
+      { x1: 680, y1: 50, x2: 680, y2: 850, type: 'SOLID' },
+      { x1: 680, y1: 850, x2: 680, y2: 950, type: 'DOOR', doorId: 'door-lobby-staff', isOpen: false },
+      { x1: 680, y1: 950, x2: 680, y2: 1300, type: 'SOLID' },
+      { x1: 50, y1: 720, x2: 380, y2: 720, type: 'SOLID' },
+      { x1: 460, y1: 720, x2: 680, y2: 720, type: 'SOLID' },
 
-      // Vault Chamber
-      { x1: 1420, y1: 480, x2: 1750, y2: 480, type: 'SOLID' },
-      { x1: 1420, y1: 480, x2: 1420, y2: 180, type: 'SOLID' },
-      { x1: 1420, y1: 180, x2: 1750, y2: 180, type: 'SOLID' },
+      // 3. CASINO LOBBY & GAMING FLOOR (Central Core)
+      // Dividing wall to VIP Lounge
+      { x1: 680, y1: 780, x2: 1120, y2: 780, type: 'SOLID' },
+      { x1: 1120, y1: 780, x2: 1240, y2: 780, type: 'DOOR', doorId: 'door-lobby-vip', isOpen: false },
+      { x1: 1240, y1: 780, x2: 1750, y2: 780, type: 'SOLID' },
 
-      // Upper floor partition & Vent escape
-      { x1: 50, y1: 480, x2: 1420, y2: 480, type: 'SOLID' },
-      { x1: 360, y1: 50, x2: 360, y2: 480, type: 'SOLID' },
-      { x1: 260, y1: 480, x2: 360, y2: 480, type: 'DOOR', doorId: 'door-l1-vent', isOpen: false }
+      // Dividing wall to Parking Garage
+      { x1: 800, y1: 1300, x2: 1350, y2: 1300, type: 'SOLID' },
+      { x1: 1350, y1: 1300, x2: 1450, y2: 1300, type: 'DOOR', doorId: 'door-lobby-garage', isOpen: false },
+      { x1: 1450, y1: 1300, x2: 1750, y2: 1300, type: 'SOLID' },
+
+      // Dividing wall to Security Corridor
+      { x1: 1750, y1: 780, x2: 1750, y2: 980, type: 'SOLID' },
+      { x1: 1750, y1: 980, x2: 1750, y2: 1080, type: 'DOOR', doorId: 'door-lobby-security', isOpen: false },
+      { x1: 1750, y1: 1080, x2: 1750, y2: 1300, type: 'SOLID' },
+
+      // Central Reception Desk
+      { x1: 1060, y1: 1000, x2: 1260, y2: 1000, type: 'SOLID' },
+      { x1: 1260, y1: 1000, x2: 1260, y2: 1080, type: 'SOLID' },
+      { x1: 1260, y1: 1080, x2: 1060, y2: 1080, type: 'SOLID' },
+      { x1: 1060, y1: 1080, x2: 1060, y2: 1000, type: 'SOLID' },
+
+      // 4. VIP LOUNGE ("VELVET ROOM")
+      { x1: 1750, y1: 240, x2: 1750, y2: 780, type: 'SOLID' },
+      { x1: 680, y1: 240, x2: 1340, y2: 240, type: 'SOLID' },
+      { x1: 1340, y1: 240, x2: 1460, y2: 240, type: 'DOOR', doorId: 'door-vip-rooftop', isOpen: false },
+      { x1: 1460, y1: 240, x2: 1750, y2: 240, type: 'SOLID' },
+      { x1: 900, y1: 460, x2: 1140, y2: 460, type: 'GLASS' },
+      { x1: 1360, y1: 460, x2: 1600, y2: 460, type: 'GLASS' },
+
+      // 5. SECURITY ROOM & SURVEILLANCE HUB
+      { x1: 2050, y1: 780, x2: 2050, y2: 950, type: 'SOLID' },
+      { x1: 2050, y1: 950, x2: 2050, y2: 1050, type: 'DOOR', doorId: 'door-sec-hub', isOpen: true },
+      { x1: 2050, y1: 1050, x2: 2050, y2: 1300, type: 'SOLID' },
+      { x1: 1750, y1: 1300, x2: 2550, y2: 1300, type: 'SOLID' },
+
+      // 6. DIAMOND VAULT & DEPOSITORY
+      { x1: 1750, y1: 520, x2: 2100, y2: 520, type: 'SOLID' },
+      { x1: 2100, y1: 520, x2: 2200, y2: 520, type: 'DOOR', doorId: 'door-vault-outer', isOpen: false },
+      { x1: 2200, y1: 520, x2: 2550, y2: 520, type: 'SOLID' },
+      { x1: 2150, y1: 240, x2: 2500, y2: 240, type: 'SOLID' },
+      { x1: 2150, y1: 240, x2: 2150, y2: 380, type: 'SOLID' },
+      { x1: 2150, y1: 380, x2: 2150, y2: 480, type: 'DOOR', doorId: 'door-vault-blast', isOpen: false },
+      { x1: 2150, y1: 480, x2: 2500, y2: 480, type: 'SOLID' },
+
+      // 7. PARKING GARAGE
+      { x1: 2360, y1: 1750, x2: 2500, y2: 1750, type: 'DOOR', doorId: 'door-garage-exit', isOpen: false },
+      // Garage Concrete Pillars
+      { x1: 1100, y1: 1480, x2: 1150, y2: 1480, type: 'SOLID' },
+      { x1: 1150, y1: 1480, x2: 1150, y2: 1530, type: 'SOLID' },
+      { x1: 1150, y1: 1530, x2: 1100, y2: 1530, type: 'SOLID' },
+      { x1: 1100, y1: 1530, x2: 1100, y2: 1480, type: 'SOLID' },
+
+      { x1: 1600, y1: 1480, x2: 1650, y2: 1480, type: 'SOLID' },
+      { x1: 1650, y1: 1480, x2: 1650, y2: 1530, type: 'SOLID' },
+      { x1: 1650, y1: 1530, x2: 1600, y2: 1530, type: 'SOLID' },
+      { x1: 1600, y1: 1530, x2: 1600, y2: 1480, type: 'SOLID' },
+
+      { x1: 2000, y1: 1480, x2: 2050, y2: 1480, type: 'SOLID' },
+      { x1: 2050, y1: 1480, x2: 2050, y2: 1530, type: 'SOLID' },
+      { x1: 2050, y1: 1530, x2: 2000, y2: 1530, type: 'SOLID' },
+      { x1: 2000, y1: 1530, x2: 2000, y2: 1480, type: 'SOLID' },
+
+      // ROOFTOP HELIPAD BALCONY BARRIERS
+      { x1: 1250, y1: 50, x2: 1250, y2: 240, type: 'SOLID' },
+      { x1: 1650, y1: 50, x2: 1650, y2: 240, type: 'SOLID' }
     ],
     guards: [
       {
-        id: 'g1-01',
-        x: 800,
-        y: 800,
+        id: 'g-entrance-01',
+        x: 480,
+        y: 1450,
+        angle: 0,
+        speed: 1.05,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 440, y: 1420 },
+          { x: 720, y: 1420 },
+          { x: 720, y: 1620 },
+          { x: 440, y: 1620 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 280,
+        fov: Math.PI * 0.4
+      },
+      {
+        id: 'g-lobby-01',
+        x: 880,
+        y: 950,
         angle: 0,
         speed: 1.1,
         state: 'PATROL',
         patrolPath: [
-          { x: 680, y: 800 },
-          { x: 920, y: 800 },
-          { x: 920, y: 920 },
-          { x: 680, y: 920 }
+          { x: 850, y: 920 },
+          { x: 1450, y: 920 },
+          { x: 1450, y: 1150 },
+          { x: 850, y: 1150 }
         ],
         currentPathIndex: 0,
         alertLevel: 0,
-        sightRadius: 260,
+        sightRadius: 290,
         fov: Math.PI * 0.4
       },
       {
-        id: 'g1-02',
-        x: 1560,
-        y: 820,
-        angle: -Math.PI * 0.5,
+        id: 'g-lobby-02',
+        x: 1600,
+        y: 900,
+        angle: Math.PI * 0.5,
         speed: 1.1,
         state: 'PATROL',
         patrolPath: [
-          { x: 1560, y: 860 },
-          { x: 1560, y: 720 },
-          { x: 1680, y: 720 },
-          { x: 1680, y: 860 }
+          { x: 1550, y: 880 },
+          { x: 1720, y: 880 },
+          { x: 1720, y: 1220 },
+          { x: 1550, y: 1220 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 280,
+        fov: Math.PI * 0.42
+      },
+      {
+        id: 'g-vip-01',
+        x: 1000,
+        y: 380,
+        angle: 0,
+        speed: 1.05,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 950, y: 350 },
+          { x: 1550, y: 350 },
+          { x: 1550, y: 650 },
+          { x: 950, y: 650 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 300,
+        fov: Math.PI * 0.42
+      },
+      {
+        id: 'g-staff-01',
+        x: 260,
+        y: 450,
+        angle: Math.PI * 0.5,
+        speed: 1.15,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 220, y: 400 },
+          { x: 550, y: 400 },
+          { x: 550, y: 1150 },
+          { x: 220, y: 1150 }
         ],
         currentPathIndex: 0,
         alertLevel: 0,
         sightRadius: 270,
-        fov: Math.PI * 0.42
+        fov: Math.PI * 0.38
+      },
+      {
+        id: 'g-sec-01',
+        x: 1900,
+        y: 1050,
+        angle: 0,
+        speed: 1.1,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 1850, y: 1020 },
+          { x: 2250, y: 1020 },
+          { x: 2250, y: 1180 },
+          { x: 1850, y: 1180 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 300,
+        fov: Math.PI * 0.4
+      },
+      {
+        id: 'g-garage-01',
+        x: 1300,
+        y: 1450,
+        angle: 0,
+        speed: 1.1,
+        state: 'PATROL',
+        patrolPath: [
+          { x: 1200, y: 1420 },
+          { x: 2200, y: 1420 },
+          { x: 2200, y: 1650 },
+          { x: 1200, y: 1650 }
+        ],
+        currentPathIndex: 0,
+        alertLevel: 0,
+        sightRadius: 280,
+        fov: Math.PI * 0.4
       }
     ],
     cameras: [
       {
-        id: 'cam-l1-01',
-        x: 1040,
-        y: 680,
-        angle: 0.8,
-        baseAngle: 0.8,
+        id: 'cam-entrance',
+        x: 640,
+        y: 1320,
+        angle: 1.57,
+        baseAngle: 1.57,
+        sweepAngle: 1.2,
+        sweepSpeed: 0.65,
+        range: 330,
+        fov: Math.PI * 0.38,
+        isHacked: false,
+        isLooping: false,
+        isPowerOff: false
+      },
+      {
+        id: 'cam-lobby-01',
+        x: 1680,
+        y: 800,
+        angle: 2.3,
+        baseAngle: 2.3,
         sweepAngle: 1.1,
         sweepSpeed: 0.7,
-        range: 310,
+        range: 340,
         fov: Math.PI * 0.36,
+        isHacked: false,
+        isLooping: false,
+        isPowerOff: false
+      },
+      {
+        id: 'cam-vault-corridor',
+        x: 2180,
+        y: 540,
+        angle: -1.57,
+        baseAngle: -1.57,
+        sweepAngle: 0.9,
+        sweepSpeed: 0.8,
+        range: 340,
+        fov: Math.PI * 0.38,
+        isHacked: false,
+        isLooping: false,
+        isPowerOff: false
+      },
+      {
+        id: 'cam-garage-01',
+        x: 1800,
+        y: 1320,
+        angle: 1.57,
+        baseAngle: 1.57,
+        sweepAngle: 1.3,
+        sweepSpeed: 0.6,
+        range: 330,
+        fov: Math.PI * 0.38,
         isHacked: false,
         isLooping: false,
         isPowerOff: false
       }
     ],
     drones: [],
-    lasers: [],
-    terminals: [
+    lasers: [
       {
-        id: 'term-l1-gate',
-        x: 930,
-        y: 710,
-        type: 'SIGNAL',
-        name: 'ALLEY MAGNETIC GATE BUS',
-        isHacked: false,
-        unlocksDoorId: 'door-l1-gate',
-        description: 'Rotate waveguide nodes to disengage magnetic barrier.'
+        id: 'laser-vault-01',
+        x1: 1850,
+        y1: 340,
+        x2: 1850,
+        y2: 480,
+        isActive: true,
+        cycleInterval: 3500,
+        isHacked: false
       },
       {
-        id: 'term-l1-cam',
-        x: 1240,
-        y: 700,
-        type: 'CODE',
-        name: 'AURORA CAM BUFFER',
+        id: 'laser-vault-02',
+        x1: 2020,
+        y1: 340,
+        x2: 2020,
+        y2: 480,
+        isActive: true,
+        cycleInterval: 4000,
+        isHacked: false
+      }
+    ],
+    terminals: [
+      {
+        id: 'term-entrance-bypass',
+        x: 240,
+        y: 1360,
+        type: 'SIGNAL',
+        name: 'SERVICE ENTRY MAGNETIC BUS',
         isHacked: false,
-        disablesCameraId: 'cam-l1-01',
-        description: 'Bypass video telemetry buffer to disable surveillance sweep.'
+        unlocksDoorId: 'door-staff-service',
+        description: 'Bypass service delivery door to infiltrate the Staff Area.'
+      },
+      {
+        id: 'term-reception',
+        x: 1150,
+        y: 980,
+        type: 'CODE',
+        name: 'LOBBY RECEPTION CONSOLE',
+        isHacked: false,
+        unlocksDoorId: 'door-lobby-vip',
+        description: 'Disengage security magnetic seals to access the VIP Velvet Lounge.'
+      },
+      {
+        id: 'term-vip-guestlist',
+        x: 1280,
+        y: 320,
+        type: 'NETWORK',
+        name: 'VIP PRIVATE GUEST REGISTER',
+        isHacked: false,
+        unlocksDoorId: 'door-vip-rooftop',
+        grantsIntelligence: 'VIP_GUEST_LIST',
+        description: 'OPTIONAL OBJECTIVE: Extract syndicate VIP attendee registry & unlock rooftop access stairs.'
+      },
+      {
+        id: 'term-sec-corridor',
+        x: 1710,
+        y: 1030,
+        type: 'CODE',
+        name: 'SECURITY CORRIDOR KEYPAD',
+        isHacked: false,
+        unlocksDoorId: 'door-lobby-security',
+        description: 'Bypass biometric keypad to access Security Sector corridor.'
+      },
+      {
+        id: 'term-sec-master',
+        x: 2320,
+        y: 920,
+        type: 'OVERRIDE',
+        name: 'SECURITY HUB',
+        isHacked: false,
+        unlocksDoorId: 'door-vault-outer',
+        disablesCameraId: 'cam-lobby-01',
+        disablesLaserId: 'laser-vault-01',
+        description: 'Central security terminal controlling casino surveillance, lasers, alarms, and access control.'
+      },
+      {
+        id: 'term-vault-terminal',
+        x: 2120,
+        y: 440,
+        type: 'CODE',
+        name: 'DIAMOND VAULT BLAST CIPHER',
+        isHacked: false,
+        unlocksDoorId: 'door-vault-blast',
+        description: 'Crack high-security encryption to unlock Diamond Vault blast doors.'
+      },
+      {
+        id: 'term-garage-gate',
+        x: 2280,
+        y: 1680,
+        type: 'SIGNAL',
+        name: 'GARAGE TRANSIT GATE MOTOR',
+        isHacked: false,
+        unlocksDoorId: 'door-garage-exit',
+        description: 'Disengage hydraulic roll-up gate for ground-level vehicular extraction.'
       }
     ]
   },

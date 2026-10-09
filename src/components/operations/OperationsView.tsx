@@ -54,8 +54,15 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
     { num: 3, title: 'ACT III: THE GHOST PROTOCOL', subtitle: 'LEVELS 07 - 09' }
   ];
 
+  const getLockReason = (m: Mission): string => {
+    const index = MISSIONS.findIndex(item => item.id === m.id);
+    if (index <= 0) return '';
+    const prev = MISSIONS[index - 1];
+    return `COMPLETE ${prev.operationCode}: ${prev.title} TO UNLOCK`;
+  };
+
   return (
-    <div className="w-full h-[calc(100vh-4.5rem)] p-4 sm:p-6 lg:p-8 flex flex-col justify-between overflow-y-auto font-mono-tech select-none">
+    <div className="w-full min-h-full p-4 sm:p-6 lg:p-8 flex flex-col justify-between font-mono-tech select-none">
       {/* Top Brutalist Header Band */}
       <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div>
@@ -319,22 +326,37 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
             )}
           </div>
 
-          {/* Action Button */}
+          {/* Action Buttons: Direct Open Operation and Intel Dossier */}
           <div className="pt-4 border-t border-white/10 mt-4">
             {isMissionUnlocked(selectedMission) ? (
-              <TactileButton
-                variant="clay-accent"
-                size="lg"
-                className="w-full justify-center"
-                icon={<Play className="w-4 h-4 fill-slate-950" />}
-                onClick={handleOpenContract}
-              >
-                OPEN BRIEFING DOSSIER
-              </TactileButton>
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <TactileButton
+                  variant="clay-accent"
+                  size="lg"
+                  className="w-full sm:flex-1 justify-center"
+                  icon={<Play className="w-4 h-4 fill-slate-950" />}
+                  onClick={() => {
+                    sound.playConfirm();
+                    onStartMission(selectedMission);
+                  }}
+                >
+                  OPEN OPERATION
+                </TactileButton>
+
+                <TactileButton
+                  variant="glass"
+                  size="lg"
+                  className="w-full sm:w-auto px-5 justify-center"
+                  icon={<Eye className="w-4 h-4 text-cyan-400" />}
+                  onClick={handleOpenContract}
+                >
+                  BRIEFING DOSSIER
+                </TactileButton>
+              </div>
             ) : (
               <div className="w-full p-3.5 rounded-xl bg-black/60 border border-white/10 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                <Lock className="w-4 h-4 text-amber-400" />
-                <span>LOCKED · COMPLETE PREVIOUS OPERATION TO UNLOCK</span>
+                <Lock className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>{getLockReason(selectedMission) || 'LOCKED · COMPLETE PREVIOUS OPERATION TO UNLOCK'}</span>
               </div>
             )}
           </div>

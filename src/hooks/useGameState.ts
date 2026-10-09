@@ -306,7 +306,7 @@ export function useGameState() {
 
       // Automatic equipment unlocks upon completing campaign missions
       const newUnlockedEquipment = [...prev.unlockedEquipment];
-      if (result.missionId === 'op-01-dead-drop' && !newUnlockedEquipment.includes('cam-analyzer')) {
+      if ((result.missionId === 'op-01-diamond-crown' || result.missionId === 'op-01-dead-drop') && !newUnlockedEquipment.includes('cam-analyzer')) {
         newUnlockedEquipment.push('cam-analyzer');
       }
       if (result.missionId === 'op-02-blind-spot' && !newUnlockedEquipment.includes('signal-jam')) {

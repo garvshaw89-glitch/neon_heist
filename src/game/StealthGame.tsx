@@ -32,7 +32,9 @@ import { ClayKey } from '../components/common/ClayKey';
 import { TactileButton } from '../components/common/TactileButton';
 import { useDevice } from '../hooks/useDevice';
 import { useGamepad } from '../hooks/useGamepad';
-import { TouchControls } from '../components/game/TouchControls';
+import { MobileGamepad } from '../components/game/MobileGamepad';
+import { SecurityHubModal } from '../components/security/SecurityHubModal';
+import { InputManager } from './input/InputManager';
 
 interface StealthGameProps {
   mission: Mission;
@@ -60,6 +62,12 @@ export const StealthGame: React.FC<StealthGameProps> = ({
   const [distractionCooldown, setDistractionCooldown] = useState(0);
   const [energy, setEnergy] = useState(100);
   const [inShadow, setInShadow] = useState(false);
+
+  // Diamond Crown Objectives & Security State
+  const [guestListRecovered, setGuestListRecovered] = useState(false);
+  const [surveillanceOverridden, setSurveillanceOverridden] = useState(false);
+  const [showSecurityHub, setShowSecurityHub] = useState(false);
+  const [isSecurityHubAuthorized, setIsSecurityHubAuthorized] = useState(false);
 
   // Level Entities
   const [guards, setGuards] = useState<Guard[]>(() => JSON.parse(JSON.stringify(mission.guards)));
@@ -100,6 +108,10 @@ export const StealthGame: React.FC<StealthGameProps> = ({
     setIsSprinting(false);
     setIsScannerActive(false);
     setIsCloaked(false);
+    setGuestListRecovered(false);
+    setSurveillanceOverridden(false);
+    setShowSecurityHub(false);
+    setIsSecurityHubAuthorized(false);
     setGuards(JSON.parse(JSON.stringify(mission.guards)));
     setCameras(JSON.parse(JSON.stringify(mission.cameras)));
     setLasers(JSON.parse(JSON.stringify(mission.lasers)));
@@ -148,8 +160,28 @@ export const StealthGame: React.FC<StealthGameProps> = ({
     mission.isTutorial ? 'W A S D · MOVE' : null
   );
 
+  // Dynamic 7-Sector Detection for The Diamond Crown Casino
+  const currentZone = (() => {
+    const { x, y } = playerPos;
+    if (y >= 1300 && x <= 800) return '01 // MAIN ENTRANCE';
+    if (y >= 1300 && x > 800) return '07 // PARKING GARAGE';
+    if (y < 240 && x >= 1200 && x <= 1680) return 'ROOFTOP HELIPAD';
+    if (y <= 780 && x >= 1750) return '03 // DIAMOND VAULT';
+    if (y <= 780 && x >= 680 && x < 1750) return '04 // VIP LOUNGE';
+    if (x < 680 && y < 1300) return '05 // STAFF & KITCHENS';
+    if (x >= 1750 && y >= 780 && y < 1300) return '06 // SECURITY HUB';
+    return '02 // CASINO LOBBY';
+  })();
+
   // Dialogues & Modals
   const [currentDialogue, setCurrentDialogue] = useState<DialogueMessage | null>(() => {
+    if (mission.id === 'op-01-diamond-crown' || mission.title.includes('DIAMOND CROWN')) {
+      return {
+        speaker: 'VERA',
+        role: 'REMOTE OPERATOR',
+        text: "Ghost, you're outside the Diamond Crown Casino. 7 sectors ahead. Infiltrate, crack the Diamond Vault, and steal the classified data core. Check VIP Lounge for guest list."
+      };
+    }
     if (mission.isTutorial) {
       return {
         speaker: 'VERA',
@@ -187,12 +219,41 @@ export const StealthGame: React.FC<StealthGameProps> = ({
   const touchMoveRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const touchAimAngleRef = useRef<number | null>(null);
 
-  // Resize canvas dynamically on window/viewport resize
+  // Resize canvas dynamically on window/viewport resize and verify canvas props
   useEffect(() => {
+    // Diagnostic log on mount verifying mission configuration received by StealthGame
+    console.log(`[StealthGame::lifecycle] Simulation Engine mounted with Mission Configuration:`, {
+      missionId: mission.id,
+      operationCode: mission.operationCode,
+      title: mission.title,
+      actNumber: mission.actNumber,
+      levelNumber: mission.levelNumber,
+      difficulty: mission.difficulty,
+      playerStart: mission.playerStart,
+      mapBounds: `${mission.mapWidth}x${mission.mapHeight}`,
+      targetName: mission.targetName,
+      extraction: mission.extraction,
+      counts: {
+        walls: mission.walls?.length ?? 0,
+        guards: mission.guards?.length ?? 0,
+        cameras: mission.cameras?.length ?? 0,
+        lasers: mission.lasers?.length ?? 0,
+        terminals: mission.terminals?.length ?? 0,
+        lights: mission.lights?.length ?? 0,
+        envObjects: mission.envObjects?.length ?? 0
+      }
+    });
+
     const handleResize = () => {
       if (canvasRef.current) {
-        canvasRef.current.width = window.innerWidth;
-        canvasRef.current.height = window.innerHeight;
+        const w = window.innerWidth || document.documentElement.clientWidth || 1280;
+        const h = window.innerHeight || document.documentElement.clientHeight || 720;
+        canvasRef.current.width = w;
+        canvasRef.current.height = h;
+        const ctx = canvasRef.current.getContext('2d');
+        console.log(`[StealthGame::canvas] Canvas calibrated: ${w}x${h} (2D Context: ${!!ctx}) for Map ${mission.mapWidth}x${mission.mapHeight}`);
+      } else {
+        console.warn(`[StealthGame::canvas] Warning: canvasRef.current is null during resize calibration.`);
       }
     };
     handleResize();
@@ -202,7 +263,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleResize);
     };
-  }, []);
+  }, [mission]);
 
   // Input states
   const keysRef = useRef<{ [key: string]: boolean }>({});
@@ -312,12 +373,54 @@ export const StealthGame: React.FC<StealthGameProps> = ({
     window.addEventListener('keyup', handleKeyUp);
     window.addEventListener('mousemove', handleMouseMove);
 
+    // Centralized InputManager action subscriptions
+    InputManager.init();
+    const unsubInteract = InputManager.onAction('INTERACT', () => {
+      handleInteract();
+    });
+    const unsubCrouch = InputManager.onAction('CROUCH', () => {
+      setIsCrouched(prev => !prev);
+    });
+    const unsubSprint = InputManager.onAction('SPRINT', (sprinting) => {
+      setIsSprinting(!!sprinting);
+    });
+    const unsubScanner = InputManager.onAction('SCANNER', () => {
+      toggleScanner();
+    });
+    const unsubDecoy = InputManager.onAction('DECOY', () => {
+      throwDistractionDecoy();
+    });
+    const unsubTakedown = InputManager.onAction('TAKEDOWN', () => {
+      if (takedownGuard) {
+        performTakedown(takedownGuard.id);
+      }
+    });
+    const unsubPause = InputManager.onAction('PAUSE', () => {
+      if (showSecurityHub) {
+        setShowSecurityHub(false);
+      } else if (activeTerminal) {
+        setActiveTerminal(null);
+      } else if (showVaultCrack) {
+        setShowVaultCrack(false);
+      } else {
+        sound.playPause();
+        setIsPaused(prev => !prev);
+      }
+    });
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('mousemove', handleMouseMove);
+      unsubInteract();
+      unsubCrouch();
+      unsubSprint();
+      unsubScanner();
+      unsubDecoy();
+      unsubTakedown();
+      unsubPause();
     };
-  }, [tutorialStep, takedownGuard, mission.isTutorial, scannerEnergy, isScannerActive]);
+  }, [tutorialStep, takedownGuard, mission.isTutorial, scannerEnergy, isScannerActive, showSecurityHub, activeTerminal, showVaultCrack]);
 
   // Toggle Realistic AR Scanner
   const toggleScanner = () => {
@@ -452,8 +555,15 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       }
     }
 
-    // 2. Terminal Hack
-    const term = terminals.find(t => !t.isHacked && Math.hypot(t.x - playerPos.x, t.y - playerPos.y) < 55);
+    // 2. Security Hub or Terminal Hack
+    const secHubTerm = terminals.find(t => t.id === 'term-sec-master');
+    if (secHubTerm && Math.hypot(secHubTerm.x - playerPos.x, secHubTerm.y - playerPos.y) < 70) {
+      sound.playUiClick();
+      setShowSecurityHub(true);
+      return;
+    }
+
+    const term = terminals.find(t => !t.isHacked && t.id !== 'term-sec-master' && Math.hypot(t.x - playerPos.x, t.y - playerPos.y) < 55);
     if (term) {
       sound.playUiClick();
       setActiveTerminal(term);
@@ -468,11 +578,18 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       return;
     }
 
-    // 4. Extraction
+    // 4. Extraction (Rooftop Helipad OR Parking Garage Transit Van)
     const ext = mission.extraction;
-    if (targetAcquired && Math.hypot(ext.x - playerPos.x, ext.y - playerPos.y) < ext.radius) {
-      completeExtraction();
-      return;
+    const isGarageExitOpen = walls.find(w => w.doorId === 'door-garage-exit')?.isOpen;
+    if (targetAcquired) {
+      if (Math.hypot(ext.x - playerPos.x, ext.y - playerPos.y) < ext.radius) {
+        completeExtraction();
+        return;
+      }
+      if (isGarageExitOpen && Math.hypot(2430 - playerPos.x, 1720 - playerPos.y) < 110) {
+        completeExtraction();
+        return;
+      }
     }
   };
 
@@ -516,6 +633,53 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       setLasers(prev => prev.map(l => l.id === activeTerminal.disablesLaserId ? { ...l, isActive: false, isHacked: true } : l));
     }
 
+    // Special objectives logic for Diamond Crown operations
+    if (activeTerminal.id === 'term-vip-guestlist') {
+      setGuestListRecovered(true);
+      sound.playConfirm();
+      setCurrentDialogue({
+        speaker: 'VERA',
+        role: 'REMOTE OPERATOR',
+        text: "VIP guest list retrieved! High-roller syndicate records downloaded. That's a ₡15,000 contract bonus."
+      });
+    } else if (activeTerminal.id === 'term-sec-corridor') {
+      sound.playHydraulicDoor();
+      setWalls(prev => prev.map(w => w.doorId === 'door-lobby-security' ? { ...w, isOpen: true } : w));
+      setCurrentDialogue({
+        speaker: 'VERA',
+        role: 'REMOTE OPERATOR',
+        text: "Security corridor gate bypassed. The central Security Hub console is straight ahead."
+      });
+    } else if (activeTerminal.id === 'term-sec-master') {
+      setSurveillanceOverridden(true);
+      // Disable all cameras & outer lasers
+      setCameras(prev => prev.map(c => ({ ...c, isPowerOff: true })));
+      setLasers(prev => prev.map(l => ({ ...l, isActive: false, isHacked: true })));
+      setWalls(prev => prev.map(w => w.doorId === 'door-vault-outer' ? { ...w, isOpen: true } : w));
+      sound.playConfirm();
+      setCurrentDialogue({
+        speaker: 'VERA',
+        role: 'REMOTE OPERATOR',
+        text: "Surveillance grid looped! Casino cameras and outer vault laser barriers are disabled. Path to vault is clear."
+      });
+    } else if (activeTerminal.id === 'term-vault-terminal') {
+      sound.playHydraulicDoor();
+      setWalls(prev => prev.map(w => w.doorId === 'door-vault-blast' ? { ...w, isOpen: true } : w));
+      setCurrentDialogue({
+        speaker: 'VERA',
+        role: 'REMOTE OPERATOR',
+        text: "Vault blast doors unlocked! The classified data core is exposed. Grab it and prep for extract!"
+      });
+    } else if (activeTerminal.id === 'term-garage-gate') {
+      sound.playHydraulicDoor();
+      setWalls(prev => prev.map(w => w.doorId === 'door-garage-exit' ? { ...w, isOpen: true } : w));
+      setCurrentDialogue({
+        speaker: 'VERA',
+        role: 'REMOTE OPERATOR',
+        text: "Parking garage roll-up transit gate disengaged! Ground-level extraction vector clear."
+      });
+    }
+
     // Tutorial advancement
     if (mission.isTutorial && tutorialStep === 'HACK_DOOR') {
       setTutorialStep('CAMERA');
@@ -523,47 +687,52 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       setCurrentDialogue({
         speaker: 'VERA',
         role: 'REMOTE OPERATOR',
-        text: "Magnetic seal disengaged. Aurora-7 camera in the next corridor. Don't let its sweep touch you."
+        text: "Magnetic seal disengaged. Security camera in the next corridor. Don't let its sweep touch you."
       });
     }
 
     setActiveTerminal(null);
   };
 
-  // Vault cracked & The Twist sequence trigger
+  // Vault cracked & Extraction sequence trigger
   const handleVaultComplete = () => {
     setTargetAcquired(true);
     setShowVaultCrack(false);
 
-    if (mission.isTutorial) {
-      // The Twist!
+    // Unlock rooftop escape and parking garage escape gates
+    setWalls(prev => prev.map(w => 
+      w.doorId === 'door-vip-rooftop' || w.doorId === 'door-garage-exit' || w.doorId === 'door-vault-blast'
+        ? { ...w, isOpen: true } 
+        : w
+    ));
+
+    // Casino syndicate security response
+    if (surveillanceOverridden) {
+      // SILENT BREACH: Master surveillance terminal suppressed vault tamper sensors!
+      sound.playConfirm();
+      cameraShakeRef.current = 4;
+      setCurrentDialogue({
+        speaker: 'VERA',
+        role: 'REMOTE OPERATOR',
+        text: "Data core secured! Master surveillance override suppressed the vault alarm! Ghost standard intact. Evacuate via rooftop helipad or parking garage!"
+      });
+    } else {
+      // Physical tamper sensors sound the alarm across the casino grid
       setAlarmsActive(true);
       sound.startAlarm();
-      cameraShakeRef.current = 15;
-      setTutorialStep('ROOFTOP_ESCAPE');
-      setTutorialHint('ESCAPE THROUGH ROOFTOP VENT TO EXTRACTION');
+      cameraShakeRef.current = 14;
 
-      // Unlock rooftop escape vent door
-      setWalls(prev => prev.map(w => w.doorId === 'vent-escape-door' ? { ...w, isOpen: true } : w));
-
-      // Guards go into search mode
       setGuards(prev => prev.map(g => ({
         ...g,
         state: 'SEARCH',
-        speed: g.speed * 1.3,
-        voiceLine: { text: "Lockdown initiated! Search the sector!", timer: 4.0 }
+        speed: g.speed * 1.25,
+        voiceLine: { text: "Lockdown initiated! Search every sector!", timer: 4.0 }
       })));
 
       setCurrentDialogue({
         speaker: 'VERA',
         role: 'REMOTE OPERATOR',
-        text: "...That's not supposed to happen! System has your signature! Run! Rooftop vent opened!"
-      });
-    } else {
-      setCurrentDialogue({
-        speaker: 'VERA',
-        role: 'REMOTE OPERATOR',
-        text: `Target secured: ${mission.targetName}. Lockdown initiated. Proceed to extraction zone immediately!`
+        text: "Data core secured! Vault tamper sensors triggered the casino alarm grid! Evacuate via the rooftop helipad or parking garage immediately!"
       });
     }
   };
@@ -576,17 +745,27 @@ export const StealthGame: React.FC<StealthGameProps> = ({
 
     const timeSeconds = Math.round((Date.now() - missionStartTime) / 1000);
     const playStyle: PlayStyle =
-      highestDetection === 0 && guardsNeutralized === 0 ? 'GHOST' :
-      highestDetection < 45 ? 'GHOST_WITH_TRACE' : 'CHAOS';
+      highestDetection === 0 && guardsNeutralized === 0 && !alarmsActive ? 'GHOST' :
+      highestDetection < 45 && !alarmsActive ? 'GHOST_WITH_TRACE' : 'CHAOS';
 
     const stars = playStyle === 'GHOST' ? 5 : playStyle === 'GHOST_WITH_TRACE' ? 4 : 3;
     const stealthBonus = playStyle === 'GHOST' ? 18000 : playStyle === 'GHOST_WITH_TRACE' ? 8000 : 0;
     const noCasualtyBonus = guardsNeutralized === 0 ? 12000 : 0;
-    const totalPayout = mission.basePayout + stealthBonus + noCasualtyBonus;
+    const vipBonus = guestListRecovered ? 15000 : 0;
+    const surveillanceBonus = surveillanceOverridden ? 8000 : 0;
+    const silentAlarmBonus = !alarmsActive ? 10000 : 0;
+    const totalPayout = mission.basePayout + stealthBonus + noCasualtyBonus + vipBonus + surveillanceBonus + silentAlarmBonus;
 
     sound.stopSoundtrack();
     sound.stopAlarm();
     sound.stopTension();
+
+    const optionalCompleted: string[] = [];
+    if (guestListRecovered) optionalCompleted.push('VIP Guest List Recovered (+₡15,000)');
+    if (surveillanceOverridden) optionalCompleted.push('Surveillance Grid Overridden (+₡8,000)');
+    if (!alarmsActive) optionalCompleted.push('Ghost Protocol - Zero Alarms Tripped (+₡10,000)');
+    if (highestDetection === 0) optionalCompleted.push('Shadow Mastery - Zero Detection (+₡18,000)');
+    if (guardsNeutralized === 0) optionalCompleted.push('Clean Hands - Zero Casualties (+₡12,000)');
 
     onMissionComplete({
       missionId: mission.id,
@@ -602,7 +781,10 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       basePayout: mission.basePayout,
       stealthBonus,
       noCasualtyBonus,
-      totalPayout
+      totalPayout,
+      guestListRecovered,
+      surveillanceDisabled: surveillanceOverridden,
+      optionalObjectivesCompleted: optionalCompleted
     });
   };
 
@@ -616,7 +798,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       const dt = Math.max(0.001, Math.min(0.05, isNaN(elapsed) || elapsed < 0 ? 0.016 : elapsed));
       lastTime = currentTime;
 
-      if (isPaused || isFailed) {
+      if (isPaused || isFailed || showSecurityHub || activeTerminal || showVaultCrack) {
         renderRealisticCanvas();
         animationFrameId = requestAnimationFrame(loop);
         return;
@@ -749,6 +931,33 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       // Check shadow state
       const playerInShadow = isPointInShadow(resolved, lights, walls);
       setInShadow(playerInShadow);
+
+      // Check laser grid beam collisions
+      lasers.forEach(laser => {
+        if (!laser.isActive) return;
+        const ldx = laser.x2 - laser.x1;
+        const ldy = laser.y2 - laser.y1;
+        const lenSq = ldx * ldx + ldy * ldy;
+        if (lenSq === 0) return;
+        const t = Math.max(0, Math.min(1, ((resolved.x - laser.x1) * ldx + (resolved.y - laser.y1) * ldy) / lenSq));
+        const projX = laser.x1 + t * ldx;
+        const projY = laser.y1 + t * ldy;
+        const dist = Math.hypot(resolved.x - projX, resolved.y - projY);
+        if (dist < 18 && !isCloaked && !alarmsActive) {
+          setAlarmsActive(true);
+          sound.startAlarm();
+          sound.playSuspicionAlert();
+          cameraShakeRef.current = 12;
+          setDetectionPercent(100);
+          setHighestDetection(prev => Math.max(prev, 100));
+          setGuards(prev => prev.map(g => ({ ...g, state: 'ALERT', alertLevel: 100 })));
+          setCurrentDialogue({
+            speaker: 'VERA',
+            role: 'REMOTE OPERATOR',
+            text: "Laser tripwire breached! Security grid alarmed! Evade the guards!"
+          });
+        }
+      });
 
       // 2. NOISE WAVES EXPANSION & GUARDS REACTION
       noiseWavesRef.current = noiseWavesRef.current
@@ -935,10 +1144,17 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       return;
     }
 
-    // Terminal
-    const term = terminals.find(t => !t.isHacked && Math.hypot(t.x - playerPos.x, t.y - playerPos.y) < 55);
+    // Security Hub Terminal
+    const secHubTerm = terminals.find(t => t.id === 'term-sec-master');
+    if (secHubTerm && Math.hypot(secHubTerm.x - playerPos.x, secHubTerm.y - playerPos.y) < 70) {
+      setNearbyPrompt(device.isTouch || device.activeInputMethod === 'TOUCH' ? 'ACCESS SECURITY HUB' : 'E — ACCESS SECURITY HUB');
+      return;
+    }
+
+    // Standard Terminals
+    const term = terminals.find(t => !t.isHacked && t.id !== 'term-sec-master' && Math.hypot(t.x - playerPos.x, t.y - playerPos.y) < 55);
     if (term) {
-      setNearbyPrompt(`[E] INTERFACE: ${term.name}`);
+      setNearbyPrompt(device.isTouch || device.activeInputMethod === 'TOUCH' ? `TAP // INTERFACE: ${term.name}` : `[E] INTERFACE: ${term.name}`);
       return;
     }
 
@@ -949,11 +1165,18 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       return;
     }
 
-    // Extraction
+    // Extraction (Rooftop Helipad OR Parking Garage Transit Van)
     const ext = mission.extraction;
-    if (targetAcquired && Math.hypot(ext.x - playerPos.x, ext.y - playerPos.y) < ext.radius) {
-      setNearbyPrompt(`[E] BOARD EXTRACTION AERODYNE`);
-      return;
+    const isGarageExitOpen = walls.find(w => w.doorId === 'door-garage-exit')?.isOpen;
+    if (targetAcquired) {
+      if (Math.hypot(ext.x - playerPos.x, ext.y - playerPos.y) < ext.radius) {
+        setNearbyPrompt(device.isTouch || device.activeInputMethod === 'TOUCH' ? `TAP // BOARD EXTRACTION AERODYNE` : `[E] BOARD EXTRACTION AERODYNE`);
+        return;
+      }
+      if (isGarageExitOpen && Math.hypot(2430 - playerPos.x, 1720 - playerPos.y) < 110) {
+        setNearbyPrompt(device.isTouch || device.activeInputMethod === 'TOUCH' ? `TAP // ESCAPE IN GETAWAY VAN` : `[E] ESCAPE IN GETAWAY VAN`);
+        return;
+      }
     }
 
     setNearbyPrompt(null);
@@ -981,12 +1204,44 @@ export const StealthGame: React.FC<StealthGameProps> = ({
     ctx.clearRect(0, 0, screenW, screenH);
     ctx.translate(-camX, -camY);
 
-    // 1. REALISTIC CONCRETE & BRUSHED TILES FLOOR
-    ctx.fillStyle = '#0a0d14';
+    // 1. REALISTIC LUXURY CASINO FLOORING & SECTOR ZONES
+    ctx.fillStyle = '#060911';
     ctx.fillRect(0, 0, mission.mapWidth, mission.mapHeight);
 
+    // Area 1: Main Entrance courtyard (Dark polished slate)
+    ctx.fillStyle = '#0a0e1a';
+    ctx.fillRect(50, 1300, 750, 450);
+
+    // Area 2: Casino Lobby (Rich marble floor with diamond sheen)
+    ctx.fillStyle = '#0d1527';
+    ctx.fillRect(680, 780, 1070, 520);
+
+    // Area 4: VIP Velvet Lounge (Deep royal plum/velvet carpet)
+    ctx.fillStyle = '#1e0824';
+    ctx.fillRect(680, 240, 1070, 540);
+
+    // Area 5: Staff Area & Kitchens (Industrial steel grey tile)
+    ctx.fillStyle = '#111722';
+    ctx.fillRect(50, 50, 630, 1250);
+
+    // Area 6: Security Monitoring Room (Graphite cyber hub)
+    ctx.fillStyle = '#071320';
+    ctx.fillRect(1750, 780, 800, 520);
+
+    // Area 3: Diamond Vault (Armored titanium chamber)
+    ctx.fillStyle = '#091829';
+    ctx.fillRect(1750, 50, 800, 730);
+
+    // Area 7: Parking Garage (Rough asphalt with parking bays)
+    ctx.fillStyle = '#090d14';
+    ctx.fillRect(800, 1300, 1750, 450);
+
+    // Rooftop Helipad
+    ctx.fillStyle = '#081422';
+    ctx.fillRect(1250, 50, 400, 190);
+
     // Physical slab seams (60px)
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.02)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.025)';
     ctx.lineWidth = 1;
     for (let x = 0; x < mission.mapWidth; x += 60) {
       ctx.beginPath();
@@ -1001,11 +1256,84 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       ctx.stroke();
     }
 
-    // Surface Puddles in outdoor/skylight zones
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.6)';
+    // CASINO GAMING TABLES (Blackjack & Roulette Green Felt Ovals)
+    const casinoTables = [
+      { x: 950, y: 940, w: 90, h: 50 },
+      { x: 1450, y: 940, w: 90, h: 50 },
+      { x: 950, y: 1160, w: 90, h: 50 },
+      { x: 1450, y: 1160, w: 90, h: 50 }
+    ];
+    casinoTables.forEach(t => {
+      // Mahogany Wood Rim
+      ctx.fillStyle = '#3f1c10';
+      ctx.beginPath();
+      ctx.roundRect(t.x - t.w / 2 - 4, t.y - t.h / 2 - 4, t.w + 8, t.h + 8, 16);
+      ctx.fill();
+
+      // Green Felt Surface
+      ctx.fillStyle = '#065f46';
+      ctx.beginPath();
+      ctx.roundRect(t.x - t.w / 2, t.y - t.h / 2, t.w, t.h, 12);
+      ctx.fill();
+
+      // Table Felt Markings
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, 16, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+
+    // VIP VELVET LOUNGE FURNITURE (Plush Sofas & Bar Counter)
+    ctx.fillStyle = '#4c0519'; // Deep velvet red
     ctx.beginPath();
-    ctx.ellipse(160, 220, 60, 35, 0.2, 0, Math.PI * 2);
-    ctx.ellipse(820, 780, 45, 25, -0.1, 0, Math.PI * 2);
+    ctx.roundRect(960, 480, 110, 36, 8);
+    ctx.roundRect(1380, 480, 110, 36, 8);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(251, 191, 36, 0.3)'; // Gold trim
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // VIP Bar Counter
+    ctx.fillStyle = '#1c1917';
+    ctx.fillRect(1160, 310, 160, 24);
+    ctx.strokeStyle = '#fbbf24';
+    ctx.strokeRect(1160, 310, 160, 24);
+
+    // PARKING GARAGE PARKED SYNDICATE LIMOUSINES & VEHICLES
+    const garageVehicles = [
+      { x: 1200, y: 1540, w: 110, h: 48, col: '#0f172a' },
+      { x: 1700, y: 1540, w: 96, h: 44, col: '#1e1b4b' },
+      { x: 2150, y: 1540, w: 104, h: 46, col: '#1c1917' }
+    ];
+    garageVehicles.forEach(veh => {
+      // Vehicle Chassis
+      ctx.fillStyle = veh.col;
+      ctx.beginPath();
+      ctx.roundRect(veh.x, veh.y, veh.w, veh.h, 8);
+      ctx.fill();
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Windshield & Roof Glass
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.25)';
+      ctx.fillRect(veh.x + 22, veh.y + 6, veh.w - 44, veh.h - 12);
+
+      // Tail and Headlights
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(veh.x + 2, veh.y + 6, 4, 8);
+      ctx.fillRect(veh.x + 2, veh.y + veh.h - 14, 4, 8);
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(veh.x + veh.w - 6, veh.y + 6, 4, 8);
+      ctx.fillRect(veh.x + veh.w - 6, veh.y + veh.h - 14, 4, 8);
+    });
+
+    // Surface Puddles in outdoor entrance zone with Rain Splashes
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.65)';
+    ctx.beginPath();
+    ctx.ellipse(360, 1620, 90, 45, 0.2, 0, Math.PI * 2);
+    ctx.ellipse(620, 1580, 70, 35, -0.15, 0, Math.PI * 2);
     ctx.fill();
 
     // 2. EXTRACTION ZONE (HELIPAD MARKINGS)
@@ -1024,6 +1352,45 @@ export const StealthGame: React.FC<StealthGameProps> = ({
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('H', ext.x, ext.y);
+
+    // PARKING GARAGE SECONDARY EXTRACTION VECTOR (SYNDICATE GETAWAY VAN)
+    const garageDoor = walls.find(w => w.doorId === 'door-garage-exit');
+    const isGarageExitOpen = garageDoor?.isOpen;
+    ctx.save();
+    ctx.translate(2430, 1720);
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.roundRect(-45, -22, 90, 44, 8);
+    ctx.fill();
+    ctx.strokeStyle = targetAcquired && isGarageExitOpen ? '#22d3ee' : '#475569';
+    ctx.lineWidth = targetAcquired && isGarageExitOpen ? 2 : 1;
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(56, 189, 248, 0.25)';
+    ctx.fillRect(-20, -14, 40, 28);
+
+    if (targetAcquired && isGarageExitOpen) {
+      const flash = Math.sin(Date.now() * 0.008) > 0;
+      ctx.fillStyle = flash ? '#f59e0b' : '#78350f';
+      ctx.fillRect(-42, -20, 6, 6);
+      ctx.fillRect(-42, 14, 6, 6);
+      ctx.fillRect(36, -20, 6, 6);
+      ctx.fillRect(36, 14, 6, 6);
+
+      ctx.beginPath();
+      ctx.arc(0, 0, 55, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(34, 211, 238, 0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 6]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = '#22d3ee';
+      ctx.font = 'bold 10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('GETAWAY VAN', 0, -28);
+    }
+    ctx.restore();
 
     // 3. SECURE FLIGHT CASE VAULT
     const v = mission.vault;
@@ -1055,8 +1422,56 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       }
     });
 
-    // 5. SECURITY TERMINALS
+    // 5. SECURITY TERMINALS & COMMAND HUBS
     terminals.forEach(term => {
+      if (term.id === 'term-sec-master') {
+        // Distinctive Security Hub Command Console
+        const isNear = Math.hypot(term.x - playerPos.x, term.y - playerPos.y) < 70;
+        ctx.save();
+        ctx.translate(term.x, term.y);
+
+        // Heavy armored server console pedestal
+        ctx.fillStyle = '#0a101d';
+        ctx.beginPath();
+        ctx.roundRect(-16, -14, 32, 28, 4);
+        ctx.fill();
+        ctx.strokeStyle = isSecurityHubAuthorized ? '#10b981' : isNear ? '#38bdf8' : '#0284c7';
+        ctx.lineWidth = isNear ? 2 : 1.5;
+        ctx.stroke();
+
+        // Dual Holographic Monitor Bank
+        ctx.fillStyle = isSecurityHubAuthorized ? 'rgba(16, 185, 129, 0.4)' : 'rgba(56, 189, 248, 0.35)';
+        ctx.fillRect(-12, -10, 10, 8);
+        ctx.fillRect(2, -10, 10, 8);
+
+        // Blinking server status LED bank
+        const blink = Math.sin(Date.now() * 0.006) > 0;
+        ctx.fillStyle = isSecurityHubAuthorized ? '#34d399' : blink ? '#38bdf8' : '#0369a1';
+        ctx.beginPath();
+        ctx.arc(-8, 6, 2, 0, Math.PI * 2);
+        ctx.arc(0, 6, 2, 0, Math.PI * 2);
+        ctx.arc(8, 6, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Pulsing proximity halo if player is near
+        if (isNear) {
+          ctx.beginPath();
+          ctx.arc(0, 0, 24, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([4, 4]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 9px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('SECURITY HUB', 0, -18);
+        ctx.restore();
+        return;
+      }
+
       ctx.fillStyle = term.isHacked ? '#10b981' : '#0ea5e9';
       ctx.fillRect(term.x - 8, term.y - 8, 16, 16);
       ctx.strokeStyle = '#e2e8f0';
@@ -1170,11 +1585,32 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       ctx.arc(cam.x, cam.y, 2, 0, Math.PI * 2);
       ctx.fill();
 
-      if (isScannerActive) {
+        if (isScannerActive) {
         ctx.fillStyle = '#38bdf8';
         ctx.font = '9px "JetBrains Mono", monospace';
         ctx.fillText(`[AURORA-7 CAMERA]`, cam.x - 30, cam.y - 12);
       }
+    });
+
+    // 8.5 LASER TRIPWIRE SENSOR BARRIERS
+    lasers.forEach(laser => {
+      if (!laser.isActive) return;
+      ctx.beginPath();
+      ctx.moveTo(laser.x1, laser.y1);
+      ctx.lineTo(laser.x2, laser.y2);
+      ctx.strokeStyle = 'rgba(244, 63, 94, 0.85)';
+      ctx.lineWidth = 3;
+      ctx.shadowColor = '#f43f5e';
+      ctx.shadowBlur = 8;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Emitter nodes
+      ctx.fillStyle = '#f43f5e';
+      ctx.beginPath();
+      ctx.arc(laser.x1, laser.y1, 4, 0, Math.PI * 2);
+      ctx.arc(laser.x2, laser.y2, 4, 0, Math.PI * 2);
+      ctx.fill();
     });
 
     // 9. SOLID ARCHITECTURAL WALLS & DOORS
@@ -1351,18 +1787,18 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       </div>
 
       {/* TOP-LEFT DIEGETIC BRUTALIST GLASS HUD */}
-      <div className="absolute top-5 left-5 z-30 flex flex-col gap-2">
-        <div className="brutal-frame glass-hud rounded-2xl p-4 shadow-2xl min-w-[230px] terminal-glass surface-imperfections space-y-3">
-          <div className="flex items-center justify-between">
+      <div className="absolute top-2 sm:top-5 left-2 sm:left-5 z-30 flex flex-col gap-1.5 sm:gap-2 max-w-[175px] sm:max-w-none">
+        <div className="brutal-frame glass-hud rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-2xl min-w-0 sm:min-w-[230px] terminal-glass surface-imperfections space-y-2 sm:space-y-3">
+          <div className="flex items-center justify-between gap-2">
             <div>
-              <span className="brutal-stamp text-[9px] text-cyan-400 border-cyan-500/30">
-                GHOST // 07
+              <span className="brutal-stamp text-[8px] sm:text-[9px] text-cyan-400 border-cyan-500/30">
+                {currentZone}
               </span>
-              <div className="text-sm font-display font-extrabold text-white tracking-wide mt-1">
-                OPERATIVE 07
+              <div className="text-xs sm:text-sm font-display font-extrabold text-white tracking-wide mt-0.5 sm:mt-1 truncate">
+                {mission.facilityName.split(' - ')[0]}
               </div>
             </div>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+            <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded whitespace-nowrap ${
               inShadow 
                 ? 'text-cyan-400 bg-cyan-950/60 border border-cyan-500/30' 
                 : 'text-amber-400 bg-amber-950/60 border border-amber-500/30'
@@ -1373,7 +1809,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
 
           {/* Energy & Scanner Battery */}
           <div className="space-y-1">
-            <div className="flex justify-between text-[10px] text-slate-400 font-mono-tech">
+            <div className="flex justify-between text-[9px] sm:text-[10px] text-slate-400 font-mono-tech">
               <span>SCANNER / AUX</span>
               <span className="text-cyan-300 font-bold">{Math.round(scannerEnergy)}%</span>
             </div>
@@ -1387,7 +1823,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
         </div>
 
         {/* Actions Row */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <TactileButton
             variant="glass"
             size="sm"
@@ -1396,7 +1832,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
               sound.playPause();
               setIsPaused(true);
             }}
-            className="text-[10px]"
+            className="text-[9px] sm:text-[10px] px-2 py-1"
           >
             PAUSE
           </TactileButton>
@@ -1406,7 +1842,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
             size="sm"
             icon={<ArrowLeft className="w-3 h-3" />}
             onClick={handleAbort}
-            className="text-[10px]"
+            className="text-[9px] sm:text-[10px] px-2 py-1"
           >
             ABORT
           </TactileButton>
@@ -1414,24 +1850,24 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       </div>
 
       {/* TOP-RIGHT OVERSIZED BRUTALIST SECURITY HUD */}
-      <div className="absolute top-5 right-5 z-30 flex flex-col items-end gap-2">
-        <div className="brutal-frame glass-hud rounded-2xl p-4 shadow-2xl min-w-[240px] terminal-glass surface-imperfections text-right space-y-2">
-          <div className="flex items-center justify-between gap-4">
-            <span className={`brutal-stamp text-[9px] ${
+      <div className="absolute top-2 sm:top-5 right-2 sm:right-5 z-30 flex flex-col items-end gap-1.5 sm:gap-2 max-w-[175px] sm:max-w-none">
+        <div className="brutal-frame glass-hud rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-2xl min-w-0 sm:min-w-[240px] terminal-glass surface-imperfections text-right space-y-1.5 sm:space-y-2">
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
+            <span className={`brutal-stamp text-[8px] sm:text-[9px] ${
               detectionPercent >= 80 ? 'text-rose-400 border-rose-500/40 animate-pulse' :
               detectionPercent >= 40 ? 'text-amber-400 border-amber-500/40' :
               'text-cyan-400 border-cyan-500/30'
             }`}>
-              SECURITY GRID
+              SECURITY
             </span>
-            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-mono-tech">
+            <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-widest font-mono-tech truncate">
               {detectionPercent >= 80 ? 'ALARM LEVEL' : 'DETECTION'}
             </span>
           </div>
 
           {/* Oversized Detection Number */}
-          <div className="flex items-baseline justify-end gap-2">
-            <span className={`text-4xl font-display font-black tracking-tight ${
+          <div className="flex items-baseline justify-end gap-1 sm:gap-2">
+            <span className={`text-2xl sm:text-4xl font-display font-black tracking-tight ${
               detectionPercent >= 80 ? 'text-rose-500 animate-pulse' :
               detectionPercent >= 40 ? 'text-amber-400' : 'text-slate-100'
             }`}>
@@ -1440,40 +1876,53 @@ export const StealthGame: React.FC<StealthGameProps> = ({
           </div>
 
           {/* Objective Directive */}
-          <div className="pt-2 border-t border-white/10 text-left">
-            <span className="text-[9px] text-cyan-400 uppercase tracking-widest block">
-              DIRECTIVE
-            </span>
-            <div className="text-xs font-display font-bold text-white mt-0.5">
-              {targetAcquired ? 'EVACUATE TO ROOFTOP AERODYNE' : `SECURE ${mission.targetName}`}
+          <div className="pt-1.5 sm:pt-2 border-t border-white/10 text-left space-y-1">
+            <div>
+              <span className="text-[8px] sm:text-[9px] text-cyan-400 uppercase tracking-widest block font-bold">
+                PRIMARY DIRECTIVE
+              </span>
+              <div className="text-[10px] sm:text-xs font-display font-bold text-white mt-0.5 truncate">
+                {targetAcquired ? 'EVACUATE TO ROOFTOP HELIPAD' : `INFILTRATE & BREACH DIAMOND VAULT`}
+              </div>
+            </div>
+            {/* Optional Objectives */}
+            <div className="text-[8px] sm:text-[9px] font-mono-tech flex items-center justify-between text-slate-400 pt-1 border-t border-white/5">
+              <span>VIP GUEST LIST:</span>
+              <span className={guestListRecovered ? 'text-emerald-400 font-bold' : 'text-amber-400'}>
+                {guestListRecovered ? 'RECOVERED' : 'PENDING'}
+              </span>
             </div>
           </div>
 
           {/* Dynamic Soundtrack Telemetry Badge */}
-          <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[9px] font-mono-tech">
-            <span className="text-slate-400 flex items-center gap-1.5">
+          <div className="pt-1.5 sm:pt-2 border-t border-white/10 flex items-center justify-between text-[8px] sm:text-[9px] font-mono-tech">
+            <span className="text-slate-400 flex items-center gap-1 sm:gap-1.5">
               <Volume2 className={`w-3 h-3 ${soundtrackMode === 'ALERTED' ? 'text-rose-400 animate-pulse' : 'text-cyan-400'}`} />
-              <span>SOUNDTRACK</span>
+              <span className="hidden sm:inline">SOUNDTRACK</span>
             </span>
-            <span className={`px-2 py-0.5 rounded font-bold flex items-center gap-1.5 text-[8px] tracking-wider uppercase transition-all duration-300 ${
+            <span className={`px-1.5 sm:px-2 py-0.5 rounded font-bold flex items-center gap-1 text-[7px] sm:text-[8px] tracking-wider uppercase transition-all duration-300 ${
               soundtrackMode === 'ALERTED'
                 ? 'text-rose-300 bg-rose-950/80 border border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.35)] animate-pulse'
                 : 'text-cyan-300 bg-cyan-950/60 border border-cyan-500/30 shadow-[0_0_8px_rgba(34,211,238,0.2)]'
             }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${
+              <span className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${
                 soundtrackMode === 'ALERTED' ? 'bg-rose-400 animate-ping' : 'bg-cyan-400'
               }`} />
-              {soundtrackMode === 'ALERTED' ? 'ALERT // SYNTH-WAVE' : 'SCOUT // AMBIENT'}
+              {soundtrackMode === 'ALERTED' ? 'ALERT // SYNTH' : 'SCOUT // AMB'}
             </span>
           </div>
         </div>
       </div>
 
-      {/* BOTTOM-LEFT DIEGETIC HEALTH & STAMINA */}
-      <div className="absolute bottom-5 left-5 z-30">
-        <div className="brutal-frame glass-hud rounded-2xl p-4 shadow-2xl min-w-[220px] terminal-glass surface-imperfections space-y-2">
+      {/* BOTTOM-LEFT DIEGETIC HEALTH & STAMINA (Shifted on Touch to prevent Joystick Overlap) */}
+      <div className={`absolute z-30 transition-all ${
+        device.isTouch || device.deviceType !== 'desktop'
+          ? 'bottom-36 left-3 sm:bottom-40 sm:left-4 scale-90 sm:scale-100 origin-bottom-left'
+          : 'bottom-5 left-5'
+      }`}>
+        <div className="brutal-frame glass-hud rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-2xl min-w-[190px] sm:min-w-[220px] terminal-glass surface-imperfections space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-400 tracking-wider">HEALTH VITALITY</span>
+            <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 tracking-wider">HEALTH VITALITY</span>
             <span className="text-xs font-mono-tech text-cyan-300 font-bold">100%</span>
           </div>
 
@@ -1503,9 +1952,16 @@ export const StealthGame: React.FC<StealthGameProps> = ({
         <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 pointer-events-none animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="brutal-frame glass-primary px-5 py-3 rounded-2xl flex items-center gap-3 terminal-glass shadow-2xl">
             <span className="text-xs font-display font-bold text-white tracking-wider">
-              {tutorialHint}
+              {(device.isTouch || device.activeInputMethod === 'TOUCH') ? (
+                tutorialStep === 'MOVE' ? 'JOYSTICK · DRAG TO MOVE' :
+                tutorialStep === 'CROUCH' ? 'TAP CROUCH PAD TO CONCEAL' :
+                tutorialStep === 'HACK_DOOR' ? 'TAP INTERACT AT DOOR CONSOLE' :
+                tutorialStep === 'DISTRACTION' ? 'TAP DECOY TO DISTRACT GUARDS' :
+                tutorialStep === 'LIGHT_SWITCH' ? 'TAP INTERACT AT LIGHT SWITCH' :
+                tutorialStep === 'TARGET_CASE' ? 'TAP INTERACT AT ASSET VAULT' : tutorialHint
+              ) : tutorialHint}
             </span>
-            {tutorialStep === 'MOVE' && (
+            {(!device.isTouch && device.activeInputMethod !== 'TOUCH') && tutorialStep === 'MOVE' && (
               <div className="flex items-center gap-1.5 ml-2">
                 <ClayKey keyLabel="W" isPressed={!!pressedKeys['w']} size="sm" />
                 <ClayKey keyLabel="A" isPressed={!!pressedKeys['a']} size="sm" />
@@ -1513,7 +1969,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
                 <ClayKey keyLabel="D" isPressed={!!pressedKeys['d']} size="sm" />
               </div>
             )}
-            {tutorialStep === 'CROUCH' && (
+            {(!device.isTouch && device.activeInputMethod !== 'TOUCH') && tutorialStep === 'CROUCH' && (
               <div className="flex items-center gap-1.5 ml-2">
                 <ClayKey keyLabel="C" isPressed={!!pressedKeys['c'] || isCrouched} size="sm" />
                 <span className="text-[10px] text-slate-400">OR</span>
@@ -1525,7 +1981,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
       )}
 
       {/* BOTTOM-RIGHT TACTICAL EQUIPMENT CONTROLS (Desktop & Non-touch) */}
-      {!device.isTouch && device.deviceType === 'desktop' && (
+      {!device.isTouch && device.deviceType === 'desktop' && device.activeInputMethod !== 'TOUCH' && (
         <div className="absolute bottom-5 right-5 z-30 flex items-center gap-2.5">
           {/* Scanner Keycap */}
           <button
@@ -1571,9 +2027,9 @@ export const StealthGame: React.FC<StealthGameProps> = ({
         </div>
       )}
 
-      {/* ADAPTIVE VIRTUAL TOUCH CONTROLS FOR TOUCH/MOBILE DEVICES */}
-      {(device.isTouch || device.deviceType !== 'desktop') && (
-        <TouchControls
+      {/* ADAPTIVE VIRTUAL MOBILE GAMEPAD FOR TOUCH/MOBILE DEVICES */}
+      {(device.activeInputMethod === 'TOUCH' || device.isTouch || device.deviceType !== 'desktop') && (
+        <MobileGamepad
           onMove={(vec) => { touchMoveRef.current = vec; }}
           onAim={(angle) => { touchAimAngleRef.current = angle; }}
           onInteract={handleInteract}
@@ -1588,14 +2044,20 @@ export const StealthGame: React.FC<StealthGameProps> = ({
           onTakedown={() => takedownGuard && performTakedown(takedownGuard.id)}
           hasTakedownPrompt={!!takedownGuard}
           hasNearbyPrompt={!!nearbyPrompt}
+          nearbyPromptText={nearbyPrompt?.replace(/\[.*?\]\s*/, '') || undefined}
+          onPause={() => {
+            sound.playPause();
+            setIsPaused(true);
+          }}
+          settings={device.controlSettings}
         />
       )}
 
-      {/* CONTEXTUAL IN-WORLD INTERACTION PROMPT */}
-      {nearbyPrompt && (
+      {/* CONTEXTUAL IN-WORLD INTERACTION PROMPT (Desktop/Gamepad only) */}
+      {nearbyPrompt && (!device.isTouch && device.activeInputMethod !== 'TOUCH') && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-16 z-30 pointer-events-none">
           <div className="brutal-frame glass-primary px-4 py-2.5 rounded-xl flex items-center gap-2.5 border-cyan-400 shadow-xl animate-pulse">
-            <ClayKey keyLabel={device.activeInputMethod === 'GAMEPAD' ? 'A' : device.activeInputMethod === 'TOUCH' ? 'TAP' : 'E'} size="sm" />
+            <ClayKey keyLabel={device.activeInputMethod === 'GAMEPAD' ? 'A' : 'E'} size="sm" />
             <span className="text-xs font-bold text-cyan-300 tracking-wider">
               {nearbyPrompt}
             </span>
@@ -1603,11 +2065,11 @@ export const StealthGame: React.FC<StealthGameProps> = ({
         </div>
       )}
 
-      {/* TAKEDOWN PROMPT */}
-      {takedownGuard && (
+      {/* TAKEDOWN PROMPT (Desktop/Gamepad only) */}
+      {takedownGuard && (!device.isTouch && device.activeInputMethod !== 'TOUCH') && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-12 z-30 pointer-events-none">
           <div className="brutal-frame-danger glass-primary px-5 py-2.5 rounded-xl flex items-center gap-2.5 border-rose-500 shadow-xl animate-bounce">
-            <ClayKey keyLabel={device.activeInputMethod === 'GAMEPAD' ? 'A' : device.activeInputMethod === 'TOUCH' ? 'TAP' : 'SPACE'} size="sm" />
+            <ClayKey keyLabel={device.activeInputMethod === 'GAMEPAD' ? 'A' : 'SPACE'} size="sm" />
             <span className="text-xs font-bold text-rose-300 tracking-wider">
               SILENT TAKEDOWN
             </span>
@@ -1620,6 +2082,94 @@ export const StealthGame: React.FC<StealthGameProps> = ({
         dialogue={currentDialogue}
         onDismiss={() => setCurrentDialogue(null)}
       />
+
+      {/* SECURITY HUB CENTRAL MAINFRAME MODAL */}
+      {showSecurityHub && (
+        <SecurityHubModal
+          cameras={cameras}
+          lasers={lasers}
+          walls={walls}
+          alarmsActive={alarmsActive}
+          detectionPercent={detectionPercent}
+          surveillanceOverridden={surveillanceOverridden}
+          isAuthorized={isSecurityHubAuthorized}
+          onAuthorizeSuccess={() => {
+            setIsSecurityHubAuthorized(true);
+            setSystemsHacked(prev => prev + 1);
+            setSurveillanceOverridden(true);
+            // Disable casino cameras and outer laser barriers
+            setCameras(prev => prev.map(c => ({ ...c, isPowerOff: true })));
+            setLasers(prev => prev.map(l => ({ ...l, isActive: false, isHacked: true })));
+            setWalls(prev => prev.map(w => w.doorId === 'door-vault-outer' ? { ...w, isOpen: true } : w));
+            setCurrentDialogue({
+              speaker: 'VERA',
+              role: 'REMOTE OPERATOR',
+              text: "Security Hub breached! Master override authorized. Surveillance feeds looped and outer vault lasers disengaged."
+            });
+          }}
+          onAuthorizeFail={() => {
+            sound.playSuspicionAlert();
+            setDetectionPercent(prev => Math.min(100, prev + 15));
+            setHighestDetection(prev => Math.max(prev, detectionPercent + 15));
+            setGuards(prev => prev.map(g => {
+              if (g.state === 'PATROL') {
+                return {
+                  ...g,
+                  state: 'SUSPICIOUS',
+                  voiceLine: { text: "Security hub telemetry glitch. Checking it out.", timer: 3.5 }
+                };
+              }
+              return g;
+            }));
+          }}
+          onToggleCameraLoop={(id) => {
+            setCameras(prev => prev.map(c => c.id === id ? { ...c, isLooping: !c.isLooping } : c));
+          }}
+          onToggleCameraPower={(id) => {
+            setCameras(prev => prev.map(c => c.id === id ? { ...c, isPowerOff: !c.isPowerOff } : c));
+          }}
+          onLoopAllCameras={() => {
+            setCameras(prev => prev.map(c => ({ ...c, isLooping: true })));
+          }}
+          onDisableAllCameras={() => {
+            setCameras(prev => prev.map(c => ({ ...c, isPowerOff: true })));
+          }}
+          onToggleLaser={(id) => {
+            setLasers(prev => prev.map(l => l.id === id ? { ...l, isActive: !l.isActive } : l));
+          }}
+          onDeactivateAllLasers={() => {
+            setLasers(prev => prev.map(l => ({ ...l, isActive: false, isHacked: true })));
+          }}
+          onUnlockDoor={(doorId) => {
+            setWalls(prev => prev.map(w => w.doorId === doorId ? { ...w, isOpen: true } : w));
+          }}
+          onUnlockAllVaultDoors={() => {
+            setWalls(prev => prev.map(w =>
+              (w.doorId === 'door-vault-outer' || w.doorId === 'door-vault-blast')
+                ? { ...w, isOpen: true }
+                : w
+            ));
+          }}
+          onSilenceAlarm={() => {
+            sound.stopAlarm();
+            setAlarmsActive(false);
+            setGuards(prev => prev.map(g => ({
+              ...g,
+              state: 'PATROL',
+              alertLevel: 0
+            })));
+          }}
+          onSuppressTamperSensors={() => {
+            setSurveillanceOverridden(true);
+            setCurrentDialogue({
+              speaker: 'VERA',
+              role: 'REMOTE OPERATOR',
+              text: "Vault tamper sensors suppressed. You can now breach the Diamond Vault with zero alarms."
+            });
+          }}
+          onClose={() => setShowSecurityHub(false)}
+        />
+      )}
 
       {/* HACKING MODAL */}
       {activeTerminal && (

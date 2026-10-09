@@ -299,4 +299,7 @@ export interface MissionResult {
   noCasualtyBonus: number;
   totalPayout: number;
   unlockedStoryLog?: string;
+  guestListRecovered?: boolean;
+  surveillanceDisabled?: boolean;
+  optionalObjectivesCompleted?: string[];
 }

@@ -26,6 +26,8 @@ import { CustomCursor } from './components/common/CustomCursor';
 import { ToastContainer, toast } from './components/common/ToastSystem';
 import { GameErrorBoundary } from './components/common/GameErrorBoundary';
 import { BackgroundMotionEngine } from './components/effects/BackgroundMotionEngine';
+import { MissionLoadingScreen } from './components/loading/MissionLoadingScreen';
+import { validateMission } from './game/missionLauncher';
 
 export default function App() {
   const {
@@ -42,6 +44,9 @@ export default function App() {
   const [inIntro, setInIntro] = useState(true);
   const [currentTab, setCurrentTab] = useState<ActiveNavTab>('DASHBOARD');
   const [activeMission, setActiveMission] = useState<Mission | null>(null);
+  const [loadingMission, setLoadingMission] = useState<Mission | null>(null);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [isLaunching, setIsLaunching] = useState(false);
   const [missionResult, setMissionResult] = useState<MissionResult | null>(null);
   const [isMuted, setIsMuted] = useState(false);
 
@@ -57,6 +62,84 @@ export default function App() {
     sound.setMuted(next);
   };
 
+  // Launch a Mission with Full Validation & Loading Pipeline
+  const handleStartMission = (mission: Mission) => {
+    if (isLaunching) {
+      console.warn(`[App.tsx::handleStartMission] Ignored duplicate launch request for ${mission?.id} (isLaunching = true)`);
+      return;
+    }
+    setIsLaunching(true);
+    setLoadingError(null);
+
+    // Safeguard: Ensure intro and boot screens are dismissed so gameplay can mount
+    setInBoot(false);
+    setInIntro(false);
+
+    console.log(`[App.tsx::handleStartMission] Initiating mission dispatch:`, {
+      missionId: mission.id,
+      operationCode: mission.operationCode,
+      title: mission.title,
+      actNumber: mission.actNumber,
+      levelNumber: mission.levelNumber,
+      difficulty: mission.difficulty,
+      playerStart: mission.playerStart,
+      mapDimensions: `${mission.mapWidth}x${mission.mapHeight}`,
+      guardsCount: mission.guards?.length,
+      camerasCount: mission.cameras?.length,
+      lasersCount: mission.lasers?.length,
+      terminalsCount: mission.terminals?.length,
+      wallsCount: mission.walls?.length,
+      lightsCount: mission.lights?.length,
+      envObjectsCount: mission.envObjects?.length,
+      vaultPosition: mission.vault ? { x: mission.vault.x, y: mission.vault.y, target: mission.targetName } : null,
+      extraction: mission.extraction,
+      timestamp: new Date().toISOString()
+    });
+
+    const validation = validateMission(mission);
+    if (!validation.isValid) {
+      console.error(`[App.tsx::handleStartMission] Mission validation failed for ${mission.id}:`, validation.error);
+      sound.playSuspicionAlert();
+      setLoadingMission(mission);
+      setLoadingError(validation.error || 'Failed to validate operation parameters.');
+      setIsLaunching(false);
+      return;
+    }
+
+    console.log(`[App.tsx::handleStartMission] Validation passed successfully for [${mission.operationCode}]. Entering LOADING pipeline.`);
+    sound.playConfirm();
+    setLoadingMission(validation.mission!);
+  };
+
+  const handleLoadingComplete = () => {
+    if (loadingMission) {
+      console.log(`[App.tsx::handleLoadingComplete] Loading pipeline complete. Transitioning loadingMission -> activeMission:`, {
+        missionId: loadingMission.id,
+        operationCode: loadingMission.operationCode,
+        title: loadingMission.title,
+        levelNumber: loadingMission.levelNumber,
+        playerSpawn: loadingMission.playerStart,
+        mapBounds: `${loadingMission.mapWidth}x${loadingMission.mapHeight}`,
+        targetName: loadingMission.targetName,
+        extraction: loadingMission.extraction,
+        guardsCount: loadingMission.guards?.length,
+        camerasCount: loadingMission.cameras?.length,
+        lasersCount: loadingMission.lasers?.length,
+        terminalsCount: loadingMission.terminals?.length,
+        wallsCount: loadingMission.walls?.length,
+        timestamp: new Date().toISOString()
+      });
+      // Ensure intro/boot flags cannot block gameplay mounting
+      setInIntro(false);
+      setInBoot(false);
+      setActiveMission(loadingMission);
+      setLoadingMission(null);
+      setIsLaunching(false);
+    } else {
+      console.warn(`[App.tsx::handleLoadingComplete] Warning: Invoked but loadingMission is null. ActiveMission state:`, activeMission ? activeMission.id : 'none');
+    }
+  };
+
   // Intro transition
   const handleEnterNetwork = (isNewGame: boolean) => {
     if (isNewGame) {
@@ -65,13 +148,10 @@ export default function App() {
       handleStartMission(MISSIONS[0]);
       return;
     }
+    // "CONTINUE OPERATION" - find next incomplete mission or Level 1
+    const nextMission = MISSIONS.find(m => !player.completedMissionIds.includes(m.id)) || MISSIONS[0];
     setInIntro(false);
-  };
-
-  // Launch a Mission
-  const handleStartMission = (mission: Mission) => {
-    sound.playConfirm();
-    setActiveMission(mission);
+    handleStartMission(nextMission);
   };
 
   // Quick Heist Deploy
@@ -85,6 +165,8 @@ export default function App() {
     recordMissionResult(result);
     setMissionResult(result);
     setActiveMission(null);
+    setLoadingMission(null);
+    setIsLaunching(false);
     toast.success('CONTRACT FULFILLED', `Acquired ₡${result.totalPayout.toLocaleString()} from ${result.facilityName}`);
   };
 
@@ -94,6 +176,8 @@ export default function App() {
     sound.stopAlarm();
     sound.stopTension();
     setActiveMission(null);
+    setLoadingMission(null);
+    setIsLaunching(false);
     setCurrentTab('OPERATIONS');
   };
 
@@ -144,6 +228,22 @@ export default function App() {
         />
       )}
 
+      {/* 03.5 MISSION LOADING / BRIEFING PIPELINE */}
+      {loadingMission && (
+        <MissionLoadingScreen
+          mission={loadingMission}
+          onReady={handleLoadingComplete}
+          onAbort={() => {
+            setLoadingMission(null);
+            setLoadingError(null);
+            setIsLaunching(false);
+            setCurrentTab('OPERATIONS');
+          }}
+          error={loadingError}
+          onRetry={() => handleStartMission(loadingMission)}
+        />
+      )}
+
       {/* 04 TACTICAL COMMAND ENVIRONMENT (NON-GAMEPLAY) */}
       {!inBoot && !inIntro && !activeMission && (
         <div className="relative w-screen h-screen text-slate-100 flex flex-col overflow-hidden">
@@ -167,14 +267,15 @@ export default function App() {
               onToggleMute={handleToggleMute}
             />
 
-          {/* Main Tactical View Workspace */}
-          <main className="flex-1 w-full max-w-[1560px] mx-auto overflow-hidden relative">
+          {/* Main Tactical View Workspace (Responsive Scrollable Container) */}
+          <main className="flex-1 w-full max-w-[1560px] mx-auto overflow-y-auto relative min-h-0">
             {currentTab === 'DASHBOARD' && (
               <MainDashboard
                 player={player}
                 onNavigate={setCurrentTab}
                 onSelectOperation={() => setCurrentTab('OPERATIONS')}
                 onPlayTutorial={() => handleStartMission(MISSIONS[0])}
+                onStartMission={handleStartMission}
               />
             )}
 

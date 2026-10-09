@@ -40,7 +40,7 @@ export const BlackMarketView: React.FC<BlackMarketViewProps> = ({ player, onBuyI
   const isUnlocked = (itemId: string) => player.unlockedEquipment.includes(itemId);
 
   return (
-    <div className="w-full h-[calc(100vh-4.5rem)] p-6 lg:p-8 flex flex-col justify-between overflow-y-auto font-mono-tech select-none">
+    <div className="w-full min-h-full p-4 sm:p-6 lg:p-8 flex flex-col justify-between font-mono-tech select-none">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div>

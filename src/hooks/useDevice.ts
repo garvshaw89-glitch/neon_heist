@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { InputManager } from '../game/input/InputManager';
+import { InputMethod, ControlSettings } from '../game/input/inputTypes';
 
 export type DeviceType = 'mobile' | 'tablet' | 'desktop';
 export type QualityTier = 'ULTRA' | 'HIGH' | 'MEDIUM' | 'LOW';
-export type InputMethod = 'KEYBOARD' | 'TOUCH' | 'GAMEPAD';
+export type { InputMethod };
 
 export interface DeviceInfo {
   isTouch: boolean;
@@ -13,6 +15,7 @@ export interface DeviceInfo {
   height: number;
   activeInputMethod: InputMethod;
   hasGamepad: boolean;
+  controlSettings: ControlSettings;
 }
 
 export function useDevice(): DeviceInfo {
@@ -35,6 +38,7 @@ export function useDevice(): DeviceInfo {
   };
 
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>(() => {
+    InputManager.init();
     const isTouch = 
       typeof window !== 'undefined' &&
       (('ontouchstart' in window) || navigator.maxTouchPoints > 0 || window.matchMedia('(pointer: coarse)').matches);
@@ -46,12 +50,15 @@ export function useDevice(): DeviceInfo {
       qualityTier: getInitialQuality(),
       width: typeof window !== 'undefined' ? window.innerWidth : 1280,
       height: typeof window !== 'undefined' ? window.innerHeight : 800,
-      activeInputMethod: isTouch ? 'TOUCH' : 'KEYBOARD',
-      hasGamepad: false
+      activeInputMethod: InputManager.getActiveMethod(),
+      hasGamepad: false,
+      controlSettings: InputManager.getSettings()
     };
   });
 
   useEffect(() => {
+    InputManager.init();
+
     const handleResize = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
@@ -67,42 +74,43 @@ export function useDevice(): DeviceInfo {
       }));
     };
 
-    const handleTouchStart = () => {
-      setDeviceInfo(prev => {
-        if (prev.activeInputMethod === 'TOUCH') return prev;
-        return { ...prev, activeInputMethod: 'TOUCH' };
-      });
-    };
-
-    const handleKeyDown = () => {
-      setDeviceInfo(prev => {
-        if (prev.activeInputMethod === 'KEYBOARD') return prev;
-        return { ...prev, activeInputMethod: 'KEYBOARD' };
-      });
-    };
+    const unsubscribeInput = InputManager.subscribe((activeMethod) => {
+      setDeviceInfo(prev => ({
+        ...prev,
+        activeInputMethod: activeMethod,
+        controlSettings: InputManager.getSettings()
+      }));
+    });
 
     const handleGamepadConnected = () => {
-      setDeviceInfo(prev => ({ ...prev, hasGamepad: true, activeInputMethod: 'GAMEPAD' }));
+      setDeviceInfo(prev => ({ ...prev, hasGamepad: true }));
     };
 
     const handleGamepadDisconnected = () => {
-      setDeviceInfo(prev => ({ ...prev, hasGamepad: false, activeInputMethod: prev.isTouch ? 'TOUCH' : 'KEYBOARD' }));
+      setDeviceInfo(prev => ({ ...prev, hasGamepad: false }));
+    };
+
+    const handleControlsChanged = () => {
+      setDeviceInfo(prev => ({
+        ...prev,
+        activeInputMethod: InputManager.getActiveMethod(),
+        controlSettings: InputManager.getSettings()
+      }));
     };
 
     window.addEventListener('resize', handleResize, { passive: true });
     window.addEventListener('orientationchange', handleResize);
-    window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('gamepadconnected', handleGamepadConnected);
     window.addEventListener('gamepaddisconnected', handleGamepadDisconnected);
+    window.addEventListener('neon_heist_controls_changed', handleControlsChanged);
 
     return () => {
+      unsubscribeInput();
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleResize);
-      window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('gamepadconnected', handleGamepadConnected);
       window.removeEventListener('gamepaddisconnected', handleGamepadDisconnected);
+      window.removeEventListener('neon_heist_controls_changed', handleControlsChanged);
     };
   }, []);
 
