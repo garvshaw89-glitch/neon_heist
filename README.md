@@ -242,7 +242,7 @@ NEON HEIST features an adaptive input system that dynamically switches interface
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/your-username/neon-heist.git
+   git clone https://github.com/garvshaw89-glitch/neon-heist.git
    cd neon-heist
    ```
 
