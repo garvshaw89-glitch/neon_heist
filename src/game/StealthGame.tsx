@@ -135,6 +135,16 @@ export const StealthGame: React.FC<StealthGameProps> = ({
     sound.resumeSoundtrack();
   }, [mission]);
 
+  // Clean Security Hub close handler restoring movement and inputs
+  const handleCloseSecurityHub = useCallback(() => {
+    setShowSecurityHub(false);
+    keysRef.current = {};
+    setPressedKeys({});
+    touchMoveRef.current = { x: 0, y: 0 };
+    touchAimAngleRef.current = null;
+    InputManager.resetInputs();
+  }, []);
+
   // Dynamic Soundtrack lifecycle: initialize on mount and tear down on unmount
   useEffect(() => {
     sound.startSoundtrack();
@@ -288,6 +298,18 @@ export const StealthGame: React.FC<StealthGameProps> = ({
   // Keyboard and Mouse input listeners
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // If modal is active, handle Escape cleanly without toggling PauseMenu and suppress gameplay controls
+      if (showSecurityHub || activeTerminal || showVaultCrack) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          e.stopPropagation();
+          if (showSecurityHub) handleCloseSecurityHub();
+          else if (activeTerminal) setActiveTerminal(null);
+          else if (showVaultCrack) setShowVaultCrack(false);
+        }
+        return;
+      }
+
       const key = e.key.toLowerCase();
       keysRef.current[key] = true;
       setPressedKeys(prev => ({ ...prev, [key]: true }));
@@ -344,10 +366,6 @@ export const StealthGame: React.FC<StealthGameProps> = ({
 
       if (key === ' ' && takedownGuard) {
         performTakedown(takedownGuard.id);
-      }
-
-      if (key === 'e') {
-        handleInteract();
       }
     };
 
@@ -556,14 +574,21 @@ export const StealthGame: React.FC<StealthGameProps> = ({
     }
 
     // 2. Security Hub or Terminal Hack
-    const secHubTerm = terminals.find(t => t.id === 'term-sec-master');
-    if (secHubTerm && Math.hypot(secHubTerm.x - playerPos.x, secHubTerm.y - playerPos.y) < 70) {
+    const secHubTerm = terminals.find(
+      t => t.id === 'term-sec-master' || t.name === 'SECURITY HUB' || (t.type === 'OVERRIDE' && t.name.toLowerCase().includes('security'))
+    );
+    if (secHubTerm && Math.hypot(secHubTerm.x - playerPos.x, secHubTerm.y - playerPos.y) < 85) {
       sound.playUiClick();
+      keysRef.current = {};
+      setPressedKeys({});
+      touchMoveRef.current = { x: 0, y: 0 };
+      touchAimAngleRef.current = null;
+      InputManager.resetInputs();
       setShowSecurityHub(true);
       return;
     }
 
-    const term = terminals.find(t => !t.isHacked && t.id !== 'term-sec-master' && Math.hypot(t.x - playerPos.x, t.y - playerPos.y) < 55);
+    const term = terminals.find(t => !t.isHacked && t.id !== secHubTerm?.id && Math.hypot(t.x - playerPos.x, t.y - playerPos.y) < 55);
     if (term) {
       sound.playUiClick();
       setActiveTerminal(term);
@@ -1145,14 +1170,16 @@ export const StealthGame: React.FC<StealthGameProps> = ({
     }
 
     // Security Hub Terminal
-    const secHubTerm = terminals.find(t => t.id === 'term-sec-master');
-    if (secHubTerm && Math.hypot(secHubTerm.x - playerPos.x, secHubTerm.y - playerPos.y) < 70) {
+    const secHubTerm = terminals.find(
+      t => t.id === 'term-sec-master' || t.name === 'SECURITY HUB' || (t.type === 'OVERRIDE' && t.name.toLowerCase().includes('security'))
+    );
+    if (secHubTerm && Math.hypot(secHubTerm.x - playerPos.x, secHubTerm.y - playerPos.y) < 85) {
       setNearbyPrompt(device.isTouch || device.activeInputMethod === 'TOUCH' ? 'ACCESS SECURITY HUB' : 'E — ACCESS SECURITY HUB');
       return;
     }
 
     // Standard Terminals
-    const term = terminals.find(t => !t.isHacked && t.id !== 'term-sec-master' && Math.hypot(t.x - playerPos.x, t.y - playerPos.y) < 55);
+    const term = terminals.find(t => !t.isHacked && t.id !== secHubTerm?.id && Math.hypot(t.x - playerPos.x, t.y - playerPos.y) < 55);
     if (term) {
       setNearbyPrompt(device.isTouch || device.activeInputMethod === 'TOUCH' ? `TAP // INTERFACE: ${term.name}` : `[E] INTERFACE: ${term.name}`);
       return;
@@ -2093,6 +2120,9 @@ export const StealthGame: React.FC<StealthGameProps> = ({
           detectionPercent={detectionPercent}
           surveillanceOverridden={surveillanceOverridden}
           isAuthorized={isSecurityHubAuthorized}
+          securityTier={mission.intel?.securityTier}
+          securityRating={mission.securityRating}
+          difficulty={mission.difficulty}
           onAuthorizeSuccess={() => {
             setIsSecurityHubAuthorized(true);
             setSystemsHacked(prev => prev + 1);
@@ -2167,7 +2197,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
               text: "Vault tamper sensors suppressed. You can now breach the Diamond Vault with zero alarms."
             });
           }}
-          onClose={() => setShowSecurityHub(false)}
+          onClose={handleCloseSecurityHub}
         />
       )}
 

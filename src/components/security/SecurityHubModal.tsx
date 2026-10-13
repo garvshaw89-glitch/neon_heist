@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { SecurityCamera, LaserGrid, Wall } from '../../types/game';
 import { sound } from '../../game/audio';
 import {
@@ -18,7 +18,12 @@ import {
   AlertTriangle,
   RefreshCw,
   Eye,
-  EyeOff
+  EyeOff,
+  Terminal as TerminalIcon,
+  Cpu,
+  Activity,
+  Layers,
+  Sparkles
 } from 'lucide-react';
 import { TactileButton } from '../common/TactileButton';
 import { ClayKey } from '../common/ClayKey';
@@ -31,6 +36,9 @@ interface SecurityHubModalProps {
   detectionPercent: number;
   surveillanceOverridden: boolean;
   isAuthorized: boolean;
+  securityTier?: string;
+  securityRating?: number;
+  difficulty?: 'RECRUIT' | 'OPERATIVE' | 'GHOST' | 'NIGHTMARE';
   onAuthorizeSuccess: () => void;
   onAuthorizeFail: () => void;
   onToggleCameraLoop: (id: string) => void;
@@ -56,6 +64,9 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
   detectionPercent,
   surveillanceOverridden,
   isAuthorized,
+  securityTier,
+  securityRating,
+  difficulty,
   onAuthorizeSuccess,
   onAuthorizeFail,
   onToggleCameraLoop,
@@ -72,35 +83,111 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('CAMERAS');
 
+  // --- FACILITY SECURITY TIER DIFFICULTY SCALING SYSTEM ---
+  const tierConfig = useMemo(() => {
+    const rawTier = (securityTier || '').toUpperCase();
+    const tierMatch = rawTier.match(/TIER\s*(\d+)/i);
+    const parsedTier = tierMatch ? parseInt(tierMatch[1], 10) : 
+      (difficulty === 'NIGHTMARE' ? 5 : difficulty === 'GHOST' ? 3 : difficulty === 'OPERATIVE' ? 2 : 1);
+    const rating = securityRating || (parsedTier * 2);
+
+    if (parsedTier >= 5 || difficulty === 'NIGHTMARE' || rating >= 8.5) {
+      return {
+        tierLabel: 'TIER 5 // BLACK-SITE ZERO-POINT CIPHER',
+        securityLevel: 'MAXIMUM THREAT',
+        sequenceLength: 5,
+        timeLimit: 16,
+        maxAttempts: 2,
+        hexPool: ['7A', 'BD', '1C', '55', 'E9', '3F', 'F4', '0D', '99', '2B'],
+        packetRate: '1.42 GB/s',
+        complexity: 'QUANTUM CRYPTO-HARDENED'
+      };
+    }
+    if (parsedTier === 4 || rating >= 7.0) {
+      return {
+        tierLabel: 'TIER 4 // MIL-SPEC HIGH SEC GRID',
+        securityLevel: 'HIGH THREAT',
+        sequenceLength: 4,
+        timeLimit: 18,
+        maxAttempts: 2,
+        hexPool: ['7A', 'BD', '1C', '55', 'E9', '3F', '4C', 'A8'],
+        packetRate: '840 MB/s',
+        complexity: 'MIL-SPEC HARDENED'
+      };
+    }
+    if (parsedTier === 3 || difficulty === 'GHOST' || rating >= 5.0) {
+      return {
+        tierLabel: 'TIER 3 // CORPORATE MAINFRAME FIREWALL',
+        securityLevel: 'ELEVATED SECURITY',
+        sequenceLength: 4,
+        timeLimit: 22,
+        maxAttempts: 3,
+        hexPool: ['7A', 'BD', '1C', '55', 'E9', '3F', '8E', '62'],
+        packetRate: '520 MB/s',
+        complexity: 'HEAVY ENCRYPTION'
+      };
+    }
+    if (parsedTier === 2 || difficulty === 'OPERATIVE' || rating >= 3.0) {
+      return {
+        tierLabel: 'TIER 2 // PRIVATE CASINO SYNDICATE HUB',
+        securityLevel: 'MODERATE ENCRYPTION',
+        sequenceLength: 3,
+        timeLimit: 25,
+        maxAttempts: 3,
+        hexPool: ['7A', 'BD', '1C', '55', 'E9', '3F'],
+        packetRate: '310 MB/s',
+        complexity: 'SYNDICATE CIPHER'
+      };
+    }
+    return {
+      tierLabel: 'TIER 1 // COMMERCIAL SECURITY CONSOLE',
+      securityLevel: 'STANDARD ENCRYPTION',
+      sequenceLength: 3,
+      timeLimit: 30,
+      maxAttempts: 3,
+      hexPool: ['7A', 'BD', '1C', '55', 'E9', '3F'],
+      packetRate: '140 MB/s',
+      complexity: 'STANDARD CIPHER'
+    };
+  }, [securityTier, securityRating, difficulty]);
+
   // Hacking Authorization Sequence State
   const [authStage, setAuthStage] = useState<'LOCKED' | 'BREACHING' | 'GRANTED'>(
     isAuthorized ? 'GRANTED' : 'LOCKED'
   );
-  const [timeLeft, setTimeLeft] = useState(25);
+  const [timeLeft, setTimeLeft] = useState(tierConfig.timeLimit);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [attemptsLeft, setAttemptsLeft] = useState(3);
+  const [attemptsLeft, setAttemptsLeft] = useState(tierConfig.maxAttempts);
 
   // Puzzle: Code Cipher Matching
-  const hexCodes = ['7A', 'BD', '1C', '55', 'E9', '3F'];
-  const [targetCode, setTargetCode] = useState<string[]>(['BD', '1C', 'E9']);
+  const [targetCode, setTargetCode] = useState<string[]>([]);
   const [enteredCode, setEnteredCode] = useState<string[]>([]);
   const [availableCodes, setAvailableCodes] = useState<string[]>([]);
+  const [decryptingIndex, setDecryptingIndex] = useState<number | null>(null);
+  const [glitchCharacters, setGlitchCharacters] = useState<Record<number, string>>({});
 
-  // Initialize Puzzle
+  // Background Hex Stream Canvas Ref
+  const matrixCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Initialize Puzzle based on scaled tier configuration
+  const setupPuzzle = () => {
+    const pool = [...tierConfig.hexPool];
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    const targets = shuffled.slice(0, tierConfig.sequenceLength);
+    setTargetCode(targets);
+    setAvailableCodes([...shuffled]);
+    setEnteredCode([]);
+    setTimeLeft(tierConfig.timeLimit);
+    setAttemptsLeft(tierConfig.maxAttempts);
+    setAuthError(null);
+    setDecryptingIndex(null);
+  };
+
   useEffect(() => {
     if (!isAuthorized) {
-      // Pick 3 target codes
-      const shuffled = [...hexCodes].sort(() => Math.random() - 0.5);
-      const targets = shuffled.slice(0, 3);
-      setTargetCode(targets);
-      // Available buttons with distractors
-      setAvailableCodes([...shuffled]);
-      setEnteredCode([]);
-      setTimeLeft(25);
-      setAttemptsLeft(3);
-      setAuthError(null);
+      setupPuzzle();
     }
-  }, [isAuthorized]);
+  }, [isAuthorized, tierConfig]);
 
   // Timer for authorization sequence
   useEffect(() => {
@@ -108,7 +195,7 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
-          handleAuthFailure('FIREWALL TIMEOUT: INTRUSION ATTEMPT DETECTED — GUARDS ALERTED');
+          handleAuthFailure('FIREWALL TIMEOUT: INTRUSION ATTEMPT DETECTED — GUARDS DISPATCHED');
           return 0;
         }
         return prev - 1;
@@ -117,7 +204,49 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
     return () => clearInterval(timer);
   }, [authStage, isAuthorized]);
 
-  // Keyboard shortcut listener for Escape to close and number keys 1-6 for puzzle
+  // --- VISUAL DECRYPTION MATRIX STREAM ANIMATION ---
+  useEffect(() => {
+    if (authStage === 'LOCKED' && isAuthorized) return;
+    const canvas = matrixCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animId: number;
+    const cols = Math.floor(canvas.width / 22);
+    const ypos = Array(cols).fill(0).map(() => Math.floor(Math.random() * -50));
+
+    const hexChars = '0123456789ABCDEF';
+
+    const renderStream = () => {
+      ctx.fillStyle = 'rgba(5, 8, 17, 0.18)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.font = '10px "JetBrains Mono", monospace';
+
+      for (let i = 0; i < cols; i++) {
+        const text = '0x' + hexChars[Math.floor(Math.random() * 16)] + hexChars[Math.floor(Math.random() * 16)];
+        
+        // Leading glow character
+        ctx.fillStyle = Math.random() > 0.85 ? '#67e8f9' : '#0ea5e9';
+        ctx.fillText(text, i * 22, ypos[i]);
+
+        if (ypos[i] > canvas.height + Math.random() * 80) {
+          ypos[i] = -20;
+        } else {
+          ypos[i] += 12;
+        }
+      }
+
+      animId = requestAnimationFrame(renderStream);
+    };
+
+    renderStream();
+
+    return () => cancelAnimationFrame(animId);
+  }, [authStage, isAuthorized]);
+
+  // Keyboard shortcut listener for Escape to close and number keys for puzzle
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -128,7 +257,7 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
         return;
       }
 
-      // Quick number key access for puzzle cipher buttons (1 - 6)
+      // Quick number key access for puzzle cipher buttons (1 - 9)
       if (authStage === 'BREACHING' && !isAuthorized) {
         const num = parseInt(e.key, 10);
         if (!isNaN(num) && num >= 1 && num <= availableCodes.length) {
@@ -146,17 +275,38 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
     sound.playUiClick();
     if (enteredCode.length >= targetCode.length) return;
 
+    const currentIndex = enteredCode.length;
     const next = [...enteredCode, code];
+
+    // Trigger visual decryption glitch cycle on the newly matched node
+    setDecryptingIndex(currentIndex);
+    let glitchCount = 0;
+    const glitchInterval = setInterval(() => {
+      const hexChars = '0123456789ABCDEF';
+      const randHex = hexChars[Math.floor(Math.random() * 16)] + hexChars[Math.floor(Math.random() * 16)];
+      setGlitchCharacters(prev => ({ ...prev, [currentIndex]: randHex }));
+      glitchCount++;
+      if (glitchCount >= 4) {
+        clearInterval(glitchInterval);
+        setGlitchCharacters(prev => {
+          const updated = { ...prev };
+          delete updated[currentIndex];
+          return updated;
+        });
+        setDecryptingIndex(null);
+      }
+    }, 60);
+
     setEnteredCode(next);
 
     // Check if next character is correct
-    const expected = targetCode[next.length - 1];
+    const expected = targetCode[currentIndex];
     if (code !== expected) {
       sound.playSuspicionAlert();
       const remaining = attemptsLeft - 1;
       setAttemptsLeft(remaining);
       if (remaining <= 0) {
-        handleAuthFailure('FIREWALL LOCKOUT: 3 MISMATCHES DETECTED — SYSTEM BREACH TRIGGERED');
+        handleAuthFailure(`FIREWALL LOCKOUT: ${tierConfig.maxAttempts} MISMATCHES DETECTED — SYSTEM BREACH TRIGGERED`);
       } else {
         setAuthError(`CIPHER MISMATCH — ${remaining} ATTEMPT${remaining > 1 ? 'S' : ''} REMAINING`);
         setTimeout(() => {
@@ -166,6 +316,9 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
       }
       return;
     }
+
+    // Success sound on partial correct match
+    sound.playHackRotate();
 
     // If completed full code correctly
     if (next.length === targetCode.length) {
@@ -180,7 +333,7 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
     setAuthError(reason);
     setAuthStage('LOCKED');
     setEnteredCode([]);
-    setAttemptsLeft(3);
+    setAttemptsLeft(tierConfig.maxAttempts);
     onAuthorizeFail();
   };
 
@@ -203,7 +356,7 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="brutal-stamp text-[8px] sm:text-[9px] text-cyan-400 border-cyan-500/30">
-                  SECTOR 06 // SECURITY HUB
+                  {tierConfig.tierLabel}
                 </span>
                 <span className={`text-[8px] sm:text-[9px] font-bold px-1.5 py-0.2 rounded ${
                   isAuthorized || authStage === 'GRANTED'
@@ -213,8 +366,9 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
                   {isAuthorized || authStage === 'GRANTED' ? 'AUTH: GRANTED' : 'AUTH: RESTRICTED'}
                 </span>
               </div>
-              <h2 className="text-xs sm:text-base font-display font-extrabold text-white tracking-wide mt-0.5 truncate">
-                CENTRAL SECURITY COMMAND CONSOLE
+              <h2 className="text-xs sm:text-base font-display font-extrabold text-white tracking-wide mt-0.5 truncate flex items-center gap-2">
+                <span>CENTRAL SECURITY COMMAND CONSOLE</span>
+                <span className="text-[10px] text-slate-400 font-mono-tech hidden sm:inline">[{tierConfig.complexity}]</span>
               </h2>
             </div>
           </div>
@@ -265,113 +419,181 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
                 {cameras.filter(c => !c.isPowerOff && !c.isLooping).length} / {cameras.length}
               </strong>
             </span>
+            <span>
+              LASERS ENERGIZED:{' '}
+              <strong className={lasers.filter(l => l.isActive).length > 0 ? 'text-rose-400' : 'text-emerald-400'}>
+                {lasers.filter(l => l.isActive).length} / {lasers.length}
+              </strong>
+            </span>
           </div>
         </div>
 
         {/* MAIN BODY: HACKING AUTHORIZATION OR REAL CONTROLS */}
         {!isAuthorized && authStage !== 'GRANTED' ? (
-          /* HACKING AUTHORIZATION GATEWAY */
-          <div className="flex-1 p-4 sm:p-8 flex flex-col justify-center items-center text-center space-y-6 overflow-y-auto">
-            <div className="max-w-md space-y-3">
-              <div className="inline-flex p-3 rounded-2xl bg-cyan-950/60 border border-cyan-400/40 text-cyan-300 mb-1">
-                <ShieldAlert className="w-8 h-8 text-cyan-400" />
+          /* HACKING AUTHORIZATION GATEWAY WITH VISUAL DECRYPTION ANIMATION */
+          <div className="relative flex-1 p-4 sm:p-8 flex flex-col justify-center items-center text-center space-y-5 overflow-hidden">
+            
+            {/* Visual Decryption Canvas Background */}
+            <canvas
+              ref={matrixCanvasRef}
+              width={800}
+              height={500}
+              className="absolute inset-0 w-full h-full pointer-events-none opacity-25 z-0"
+            />
+
+            {/* Scanline CRT overlay */}
+            <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,0.7)_100%)] z-0" />
+
+            <div className="relative z-10 max-w-lg space-y-2">
+              <div className="inline-flex p-3 rounded-2xl bg-cyan-950/70 border border-cyan-400/40 text-cyan-300 mb-1 shadow-[0_0_20px_rgba(34,211,238,0.25)]">
+                <ShieldAlert className="w-7 h-7 text-cyan-400 animate-pulse" />
               </div>
-              <h3 className="text-lg sm:text-xl font-display font-extrabold text-white">
-                SECURITY OVERRIDE AUTHORIZATION REQUIRED
+              <h3 className="text-base sm:text-xl font-display font-extrabold text-white tracking-wide">
+                FACILITY SECURITY OVERRIDE REQUIRED
               </h3>
-              <p className="text-xs text-slate-400 leading-relaxed font-mono-tech">
-                The Security Hub controls casino surveillance cameras, vault laser tripwires, restricted door magnetic seals, and the master alarm grid. You must breach the syndicate firewall cipher to authorize overrides.
+              <p className="text-xs text-slate-400 leading-relaxed font-mono-tech max-w-md mx-auto">
+                Protected by <strong className="text-cyan-300">{tierConfig.tierLabel}</strong>. Authorize master administrative privileges to loop surveillance cameras, disengage laser barriers, and disarm vault tamper alarms.
               </p>
             </div>
 
             {authStage === 'LOCKED' ? (
-              <div className="space-y-4">
+              <div className="relative z-10 space-y-4">
                 {authError && (
-                  <div className="p-3 rounded-xl bg-rose-950/80 border border-rose-500/50 text-rose-300 text-xs font-bold animate-pulse">
+                  <div className="p-3 rounded-xl bg-rose-950/80 border border-rose-500/50 text-rose-300 text-xs font-bold animate-pulse max-w-md mx-auto">
                     <AlertTriangle className="w-4 h-4 inline mr-2 text-rose-400" />
                     {authError}
                   </div>
                 )}
+                
+                {/* Security Tier Telemetry Card */}
+                <div className="p-4 rounded-xl bg-black/60 border border-white/10 text-left max-w-sm mx-auto space-y-2 text-xs">
+                  <div className="flex justify-between text-slate-400 text-[10px]">
+                    <span>DEFENSE PROTOCOL:</span>
+                    <strong className="text-amber-400 font-mono-tech">{tierConfig.securityLevel}</strong>
+                  </div>
+                  <div className="flex justify-between text-slate-400 text-[10px]">
+                    <span>CIPHER NODES REQUIRED:</span>
+                    <strong className="text-cyan-300 font-mono-tech">{tierConfig.sequenceLength} HEX CHUNKS</strong>
+                  </div>
+                  <div className="flex justify-between text-slate-400 text-[10px]">
+                    <span>INJECTION TIMEOUT:</span>
+                    <strong className="text-cyan-300 font-mono-tech">{tierConfig.timeLimit} SECONDS</strong>
+                  </div>
+                  <div className="flex justify-between text-slate-400 text-[10px]">
+                    <span>TOLERANCE THRESHOLD:</span>
+                    <strong className="text-rose-400 font-mono-tech">{tierConfig.maxAttempts} FAILED ATTEMPTS</strong>
+                  </div>
+                </div>
+
                 <TactileButton
                   variant="clay-primary"
                   size="lg"
                   onClick={() => {
                     sound.playUiClick();
+                    setupPuzzle();
                     setAuthStage('BREACHING');
-                    setTimeLeft(25);
-                    setEnteredCode([]);
-                    setAuthError(null);
                   }}
-                  className="px-6 py-3"
+                  className="px-6 py-3 cursor-pointer"
                 >
                   INITIALIZE FIREWALL BREACH
                 </TactileButton>
               </div>
             ) : (
-              /* ACTIVE BREACH PUZZLE */
-              <div className="w-full max-w-lg p-5 rounded-2xl bg-black/60 border border-cyan-500/30 space-y-5">
-                <div className="flex items-center justify-between text-xs border-b border-white/10 pb-3">
-                  <span className="text-cyan-400 font-bold flex items-center gap-1.5">
-                    <Radio className="w-3.5 h-3.5 animate-pulse" />
-                    <span>CIPHER FREQUENCY DECODER</span>
-                  </span>
-                  <span className={`font-mono-tech font-bold ${timeLeft <= 5 ? 'text-rose-400 animate-ping' : 'text-amber-400'}`}>
-                    TIME REMAINING: {timeLeft}s
-                  </span>
+              /* ACTIVE BREACH PUZZLE WITH DATA STREAM OVERLAY */
+              <div className="relative z-10 w-full max-w-xl p-4 sm:p-5 rounded-2xl bg-black/80 border border-cyan-500/40 backdrop-blur-md shadow-[0_0_35px_rgba(34,211,238,0.2)] space-y-4">
+                
+                {/* Live Data Stream Telemetry Header */}
+                <div className="flex flex-wrap items-center justify-between text-xs border-b border-white/10 pb-2.5 gap-2">
+                  <div className="flex items-center gap-2">
+                    <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                    <span className="text-cyan-400 font-bold tracking-wider">
+                      BRUTE-FORCE DATA STREAM: <span className="text-white font-mono-tech">{tierConfig.packetRate}</span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] text-slate-400">
+                      TOLERANCE: <strong className={attemptsLeft === 1 ? 'text-rose-400' : 'text-cyan-300'}>{attemptsLeft}/{tierConfig.maxAttempts}</strong>
+                    </span>
+                    <span className={`font-mono-tech font-bold text-xs ${timeLeft <= 5 ? 'text-rose-400 animate-ping' : 'text-amber-400'}`}>
+                      TIMEOUT: {timeLeft}s
+                    </span>
+                  </div>
                 </div>
 
                 {authError && (
-                  <div className="text-xs text-rose-400 font-bold animate-pulse">
+                  <div className="text-xs text-rose-400 font-bold animate-pulse bg-rose-950/60 p-2 rounded-lg border border-rose-500/40">
+                    <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />
                     {authError}
                   </div>
                 )}
 
-                {/* Target Code Sequence */}
+                {/* Target Code Sequence with Decryption Animation */}
                 <div className="space-y-1.5">
-                  <span className="text-[10px] text-slate-400 uppercase tracking-widest block font-bold">
-                    MATCH TARGET SIGNATURE SEQUENCE
-                  </span>
-                  <div className="flex items-center justify-center gap-3">
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest font-bold">
+                    <span>MATCH TARGET CIPHER SEQUENCE</span>
+                    <span className="text-cyan-400/80 font-mono-tech">
+                      PROGRESS: {enteredCode.length} / {targetCode.length}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
                     {targetCode.map((code, idx) => {
                       const isMatched = enteredCode[idx] === code;
+                      const isCurrentlyDecrypting = decryptingIndex === idx;
+                      const displayCode = glitchCharacters[idx] || (isMatched ? code : (isCurrentlyDecrypting ? '??' : code));
+
                       return (
                         <div
                           key={idx}
-                          className={`w-16 h-12 rounded-xl border flex flex-col items-center justify-center font-mono-tech font-extrabold text-sm transition-all ${
+                          className={`min-w-[58px] sm:min-w-[68px] h-12 rounded-xl border flex flex-col items-center justify-center font-mono-tech font-extrabold text-sm transition-all relative overflow-hidden ${
                             isMatched
-                              ? 'bg-emerald-950/80 border-emerald-400 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
-                              : 'bg-black/80 border-cyan-500/30 text-cyan-300'
+                              ? 'bg-emerald-950/80 border-emerald-400 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.35)] scale-105'
+                              : isCurrentlyDecrypting
+                              ? 'bg-cyan-950/90 border-cyan-300 text-white animate-pulse'
+                              : idx === enteredCode.length
+                              ? 'bg-cyan-950/40 border-cyan-400/70 text-cyan-200 ring-2 ring-cyan-400/30'
+                              : 'bg-black/80 border-white/10 text-slate-400'
                           }`}
                         >
+                          {/* Animated Decryption Scan Sweep */}
+                          {isMatched && (
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-400/20 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
+                          )}
                           <span className="text-[8px] text-slate-500">NODE 0{idx + 1}</span>
-                          <span>{code}</span>
+                          <span className="tracking-wider">{displayCode}</span>
                         </div>
                       );
                     })}
                   </div>
                 </div>
 
-                {/* Interactive Key Selection Grid */}
+                {/* Interactive Key Selection Grid with Keyboard Hints */}
                 <div className="space-y-1.5">
-                  <span className="text-[10px] text-slate-400 uppercase tracking-widest block font-bold">
-                    SELECT FREQUENCY CHUNKS IN SEQUENCE
-                  </span>
-                  <div className="grid grid-cols-3 gap-2.5 pt-1">
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest font-bold">
+                    <span>SELECT FREQUENCY CHUNKS IN ORDER</span>
+                    <span className="text-slate-500 hidden sm:inline">[PRESS KEYS 1-{availableCodes.length}]</span>
+                  </div>
+
+                  <div className={`grid gap-2 pt-1 ${availableCodes.length > 6 ? 'grid-cols-4 sm:grid-cols-4' : 'grid-cols-3'}`}>
                     {availableCodes.map((code, idx) => (
                       <button
                         key={idx}
                         onClick={() => handleCodeClick(code)}
-                        className="p-3 rounded-xl bg-[#090e1a] hover:bg-[#121c33] active:scale-95 border border-white/10 hover:border-cyan-400/50 text-white font-mono-tech font-bold text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5"
+                        className="p-2.5 sm:p-3 rounded-xl bg-[#090e1a] hover:bg-[#121c33] active:scale-95 border border-white/10 hover:border-cyan-400/60 text-white font-mono-tech font-bold text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5 group"
                       >
                         <ClayKey keyLabel={String(idx + 1)} size="sm" />
-                        <span className="text-cyan-300">{code}</span>
+                        <span className="text-cyan-300 group-hover:text-cyan-100 font-extrabold">{code}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <div className="text-[10px] text-slate-500 pt-2 border-t border-white/5 flex items-center justify-between">
-                  <span>INPUT: {enteredCode.join(' - ') || 'AWAITING KEYSTROKE'}</span>
+                {/* Telemetry Stream Footer */}
+                <div className="text-[10px] text-slate-500 pt-2 border-t border-white/10 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-3 h-3 text-cyan-400 animate-spin" />
+                    <span>BUFFER: {enteredCode.join(' - ') || 'AWAITING KEYSTROKE'}</span>
+                  </div>
                   <button
                     onClick={() => {
                       sound.playUiClick();
@@ -379,7 +601,7 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
                     }}
                     className="text-slate-400 hover:text-white underline cursor-pointer"
                   >
-                    ABORT BREACH
+                    ABORT INJECTION
                   </button>
                 </div>
               </div>
@@ -451,8 +673,9 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
               </button>
 
               <div className="hidden md:block pt-4 mt-auto border-t border-white/10 text-[9px] text-slate-500 space-y-1">
-                <div>CIRCUIT: OVERRIDE BUS</div>
-                <div>ENCRYPTION: BYPASSED</div>
+                <div className="text-cyan-400 font-bold">SYNDICATE MAINFRAME</div>
+                <div>ROOT PERMISSIONS: GRANTED</div>
+                <div>OVERRIDE PROTOCOL: ACTIVE</div>
               </div>
             </div>
 
@@ -495,7 +718,7 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {cameras.map((cam, idx) => (
+                    {cameras.map((cam) => (
                       <div
                         key={cam.id}
                         className="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-2.5"
@@ -566,7 +789,7 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
                         INFRARED LASER TRIPWIRE GRIDS
                       </h4>
                       <span className="text-[10px] text-slate-400">
-                        Deactivating laser barriers allows safe passage into the Diamond Vault corridor.
+                        Deactivating laser barriers allows safe passage through secured perimeters.
                       </span>
                     </div>
 
@@ -797,7 +1020,7 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
 
         {/* FOOTER */}
         <div className="bg-[#050811]/90 border-t border-white/10 px-4 py-2.5 flex items-center justify-between text-[10px] text-slate-500">
-          <span>AIR-GAP HARDWARE CONNECTION ACTIVE</span>
+          <span>AIR-GAP HARDWARE CONNECTION ACTIVE // PROTOCOL {tierConfig.tierLabel}</span>
           <button
             onClick={() => {
               sound.playUiClick();
