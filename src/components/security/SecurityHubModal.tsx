@@ -23,7 +23,8 @@ import {
   Cpu,
   Activity,
   Layers,
-  Sparkles
+  Sparkles,
+  RotateCcw
 } from 'lucide-react';
 import { TactileButton } from '../common/TactileButton';
 import { ClayKey } from '../common/ClayKey';
@@ -98,6 +99,7 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
         sequenceLength: 5,
         timeLimit: 16,
         maxAttempts: 2,
+        undoPenaltySeconds: 8,
         hexPool: ['7A', 'BD', '1C', '55', 'E9', '3F', 'F4', '0D', '99', '2B'],
         packetRate: '1.42 GB/s',
         complexity: 'QUANTUM CRYPTO-HARDENED'
@@ -110,6 +112,7 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
         sequenceLength: 4,
         timeLimit: 18,
         maxAttempts: 2,
+        undoPenaltySeconds: 6,
         hexPool: ['7A', 'BD', '1C', '55', 'E9', '3F', '4C', 'A8'],
         packetRate: '840 MB/s',
         complexity: 'MIL-SPEC HARDENED'
@@ -122,6 +125,7 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
         sequenceLength: 4,
         timeLimit: 22,
         maxAttempts: 3,
+        undoPenaltySeconds: 5,
         hexPool: ['7A', 'BD', '1C', '55', 'E9', '3F', '8E', '62'],
         packetRate: '520 MB/s',
         complexity: 'HEAVY ENCRYPTION'
@@ -134,6 +138,7 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
         sequenceLength: 3,
         timeLimit: 25,
         maxAttempts: 3,
+        undoPenaltySeconds: 4,
         hexPool: ['7A', 'BD', '1C', '55', 'E9', '3F'],
         packetRate: '310 MB/s',
         complexity: 'SYNDICATE CIPHER'
@@ -145,6 +150,7 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
       sequenceLength: 3,
       timeLimit: 30,
       maxAttempts: 3,
+      undoPenaltySeconds: 3,
       hexPool: ['7A', 'BD', '1C', '55', 'E9', '3F'],
       packetRate: '140 MB/s',
       complexity: 'STANDARD CIPHER'
@@ -157,6 +163,7 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
   );
   const [timeLeft, setTimeLeft] = useState(tierConfig.timeLimit);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [undoPenaltyNotice, setUndoPenaltyNotice] = useState<string | null>(null);
   const [attemptsLeft, setAttemptsLeft] = useState(tierConfig.maxAttempts);
 
   // Puzzle: Code Cipher Matching
@@ -180,6 +187,7 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
     setTimeLeft(tierConfig.timeLimit);
     setAttemptsLeft(tierConfig.maxAttempts);
     setAuthError(null);
+    setUndoPenaltyNotice(null);
     setDecryptingIndex(null);
   };
 
@@ -246,7 +254,31 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
     return () => cancelAnimationFrame(animId);
   }, [authStage, isAuthorized]);
 
-  // Keyboard shortcut listener for Escape to close and number keys for puzzle
+  // Tactical Penalty-Based Undo Move
+  const handleUndoStep = () => {
+    if (enteredCode.length === 0 || authStage !== 'BREACHING' || isAuthorized) return;
+    const penalty = tierConfig.undoPenaltySeconds;
+    sound.playUiClick();
+    sound.playSuspicionAlert();
+
+    setTimeLeft(prev => {
+      const remaining = prev - penalty;
+      if (remaining <= 0) {
+        handleAuthFailure(`FIREWALL LOCKOUT: ROLLBACK PENALTY (-${penalty}s) DEPLETED TIME WINDOW`);
+        return 0;
+      }
+      return remaining;
+    });
+
+    setEnteredCode(prev => prev.slice(0, -1));
+    setAuthError(null);
+    setUndoPenaltyNotice(`-${penalty}s TIME PENALTY APPLIED // BUFFER ROLLBACK`);
+    setTimeout(() => {
+      setUndoPenaltyNotice(null);
+    }, 1800);
+  };
+
+  // Keyboard shortcut listener for Escape to close, Backspace for tactical undo, and number keys for puzzle
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -257,8 +289,16 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
         return;
       }
 
-      // Quick number key access for puzzle cipher buttons (1 - 9)
       if (authStage === 'BREACHING' && !isAuthorized) {
+        // Penalty-based undo move via Backspace, Delete, or U key
+        if (e.key === 'Backspace' || e.key === 'Delete' || e.key.toLowerCase() === 'u' || (e.ctrlKey && e.key.toLowerCase() === 'z')) {
+          e.preventDefault();
+          e.stopPropagation();
+          handleUndoStep();
+          return;
+        }
+
+        // Quick number key access for puzzle cipher buttons (1 - 9)
         const num = parseInt(e.key, 10);
         if (!isNaN(num) && num >= 1 && num <= availableCodes.length) {
           e.preventDefault();
@@ -269,7 +309,7 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [onClose, authStage, isAuthorized, availableCodes, enteredCode, targetCode]);
+  }, [onClose, authStage, isAuthorized, availableCodes, enteredCode, targetCode, tierConfig]);
 
   const handleCodeClick = (code: string) => {
     sound.playUiClick();
@@ -483,6 +523,10 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
                     <span>TOLERANCE THRESHOLD:</span>
                     <strong className="text-rose-400 font-mono-tech">{tierConfig.maxAttempts} FAILED ATTEMPTS</strong>
                   </div>
+                  <div className="flex justify-between text-slate-400 text-[10px] pt-1 border-t border-white/5">
+                    <span>TACTICAL ROLLBACK PENALTY:</span>
+                    <strong className="text-amber-400 font-mono-tech">-{tierConfig.undoPenaltySeconds}s PER NODE</strong>
+                  </div>
                 </div>
 
                 <TactileButton
@@ -586,6 +630,40 @@ export const SecurityHubModal: React.FC<SecurityHubModalProps> = ({
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* Tactical Rollback (Undo Move) Action Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/10">
+                  <button
+                    type="button"
+                    onClick={handleUndoStep}
+                    disabled={enteredCode.length === 0}
+                    className={`px-3 py-2 rounded-xl border text-xs font-mono-tech font-bold flex items-center gap-2 transition-all ${
+                      enteredCode.length > 0
+                        ? 'bg-amber-950/70 hover:bg-amber-900/80 border-amber-500/50 text-amber-300 hover:text-amber-100 shadow-[0_0_15px_rgba(245,158,11,0.25)] cursor-pointer active:scale-95'
+                        : 'bg-black/40 border-white/5 text-slate-600 opacity-40 cursor-not-allowed'
+                    }`}
+                    title={`Undo last entered cipher node (-${tierConfig.undoPenaltySeconds}s penalty)`}
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                    <span>ROLLBACK CHUNK</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/60 border border-amber-500/40 text-amber-300 font-extrabold">
+                      -{tierConfig.undoPenaltySeconds}s
+                    </span>
+                    <span className="hidden sm:inline text-[9px] text-slate-400 font-normal">[BACKSPACE]</span>
+                  </button>
+
+                  {undoPenaltyNotice ? (
+                    <div className="text-[11px] text-amber-300 font-bold font-mono-tech animate-pulse flex items-center gap-1.5 bg-amber-950/90 px-3 py-1.5 rounded-lg border border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                      <span>{undoPenaltyNotice}</span>
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-slate-400 font-mono-tech flex items-center gap-1">
+                      <span>ROLLBACK COST:</span>
+                      <strong className="text-amber-400">-{tierConfig.undoPenaltySeconds}s / NODE</strong>
+                    </div>
+                  )}
                 </div>
 
                 {/* Telemetry Stream Footer */}

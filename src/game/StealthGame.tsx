@@ -415,7 +415,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
     });
     const unsubPause = InputManager.onAction('PAUSE', () => {
       if (showSecurityHub) {
-        setShowSecurityHub(false);
+        handleCloseSecurityHub();
       } else if (activeTerminal) {
         setActiveTerminal(null);
       } else if (showVaultCrack) {
@@ -2071,7 +2071,7 @@ export const StealthGame: React.FC<StealthGameProps> = ({
           onTakedown={() => takedownGuard && performTakedown(takedownGuard.id)}
           hasTakedownPrompt={!!takedownGuard}
           hasNearbyPrompt={!!nearbyPrompt}
-          nearbyPromptText={nearbyPrompt?.replace(/\[.*?\]\s*/, '') || undefined}
+          nearbyPromptText={nearbyPrompt?.replace(/(\[.*?\]|E\s*—)\s*/i, '').trim() || undefined}
           onPause={() => {
             sound.playPause();
             setIsPaused(true);
